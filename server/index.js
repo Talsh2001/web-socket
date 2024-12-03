@@ -14,7 +14,7 @@ const usersRouter = require("./routers/usersRouter");
 const messagesRouter = require("./routers/messagesRouter");
 
 const app = express();
-const port = 3000;
+const port = 80;
 
 connectDB();
 
