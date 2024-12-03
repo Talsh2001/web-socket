@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const connectDB = require("./configs/db");
+const path = require("path");
 
 const http = require("http");
 const { Server } = require("socket.io");
@@ -20,6 +21,7 @@ connectDB();
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, "../client/dist")));
 app.use("/users", usersRouter);
 app.use("/chats", requireAuth, messagesRouter);
 
@@ -313,6 +315,10 @@ io.on("connection", (socket) => {
     setUserToOffline(socket.id);
   });
 });
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../client/dist/index.html"));
+})
 
 server.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
