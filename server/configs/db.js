@@ -2,7 +2,9 @@ const mongoose = require("mongoose");
 
 const connectDB = () => {
   mongoose
-    .connect("mongodb://127.0.0.1:27017/socketDB")
+    .connect(
+      "mongodb+srv://tomq5555:OZGQhWZcZmqmsOfh@cluster0.c3lnb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0/socketDB"
+    )
     .then(() => {
       console.log("Connected to DB");
     })

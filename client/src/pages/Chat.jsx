@@ -11,7 +11,7 @@ import useSocketHandlers from "../components/BlockingEvents";
 
 const Offset = styled("div")(({ theme }) => theme.mixins.toolbar);
 
-const url = "http://localhost:3000";
+const url = import.meta.env.VITE_API;
 
 const Chat = ({ onlineUsers }) => {
   const [users, setUsers] = useState([]);

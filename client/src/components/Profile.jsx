@@ -17,7 +17,7 @@ import {
 } from "@mui/icons-material";
 import useSocketHandlers from "./BlockingEvents";
 
-const url = "http://localhost:3000";
+const url = import.meta.env.VITE_API;
 
 const Profile = ({ onlineUsers }) => {
   const [groupChats, setGroupChats] = useState([]);

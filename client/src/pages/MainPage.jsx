@@ -5,7 +5,7 @@ import axios from "axios";
 
 import WelcomePage from "./WelcomePage";
 
-const url = "http://localhost:3000";
+const url = import.meta.env.VITE_API;
 
 const MainPage = ({ onlineUsers }) => {
   const username = sessionStorage.getItem("username");

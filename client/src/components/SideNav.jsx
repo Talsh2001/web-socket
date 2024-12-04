@@ -17,7 +17,7 @@ import { socket } from "../socket";
 import axios from "axios";
 import useSocketHandlers from "./BlockingEvents";
 
-const url = "http://localhost:3000";
+const url = import.meta.env.VITE_API;
 
 const SideNav = ({ onlineUsers }) => {
   const [chats, setChats] = useState(true);
