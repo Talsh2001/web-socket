@@ -21,7 +21,7 @@ const usersRouter = require("./routers/usersRouter");
 const messagesRouter = require("./routers/messagesRouter");
 
 const app = express();
-const port = 80;
+const port = process.env.PORT || 80;
 
 connectDB();
 
@@ -31,11 +31,20 @@ app.use(express.static(path.join(__dirname, "../client/dist")));
 app.use("/users", usersRouter);
 app.use("/chats", requireAuth, messagesRouter);
 
-const server = http.createServer(app);
+let server = http.createServer(app);
+
+if (process.env.ENVIRONMENT !== "development") {
+  const options = {
+    key: fs.readFileSync("/etc/letsencrypt/live/tal-shalev.me/privkey.pem"),
+    cert: fs.readFileSync("/etc/letsencrypt/live/tal-shalev.me/fullchain.pem"),
+  };
+
+  server = https.createServer(options, app);
+}
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: "*",
     methods: ["GET", "POST"],
   },
 });
@@ -329,14 +338,3 @@ app.get("*", (req, res) => {
 server.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
-
-if (process.env.ENVIRONMENT !== "development") {
-  const options = {
-    key: fs.readFileSync("/etc/letsencrypt/live/tal-shalev.me/privkey.pem"),
-    cert: fs.readFileSync("/etc/letsencrypt/live/tal-shalev.me/fullchain.pem"),
-  };
-
-  https.createServer(options, server).listen(443, () => {
-    console.log("HTTPS Server running on port 443");
-  });
-}
