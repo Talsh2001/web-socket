@@ -3,7 +3,13 @@ const cors = require("cors");
 const connectDB = require("./configs/db");
 const path = require("path");
 
+const https = require("https");
 const http = require("http");
+
+const fs = require("fs");
+
+require("dotenv").config();
+
 const { Server } = require("socket.io");
 const PrivateChat = require("./models/privateModel");
 const GroupChat = require("./models/groupModel");
@@ -318,8 +324,19 @@ io.on("connection", (socket) => {
 
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../client/dist/index.html"));
-})
+});
 
 server.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
+
+if (process.env.ENVIRONMENT !== "development") {
+  const options = {
+    key: fs.readFileSync("/etc/letsencrypt/live/tal-shalev.me/privkey.pem"),
+    cert: fs.readFileSync("/etc/letsencrypt/live/tal-shalev.me/fullchain.pem"),
+  };
+
+  https.createServer(options, server).listen(443, () => {
+    console.log("HTTPS Server running on port 443");
+  });
+}
