@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Drawer, IconButton, Box, Typography, TextField, Button } from "@mui/material";
@@ -19,13 +20,13 @@ import useSocketHandlers from "./BlockingEvents";
 
 const url = import.meta.env.VITE_API;
 
-const SideNav = ({ onlineUsers }) => {
-  const [chats, setChats] = useState(true);
+const SideNav = ({ onlineUsers, users, currentUser, chats }) => {
+  const [chatsView, setChatsView] = useState(true);
   const [newChat, setNewChat] = useState(false);
   const [newGroup, setNewGroup] = useState(false);
   const [editGroup, setEditGroup] = useState(false);
   const [blockedUsersList, setBlockedUsersList] = useState(false);
-  const [users, setUsers] = useState([]);
+
   const [currentUserChats, setCurrentUserChats] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [groupMembers, setGroupMembers] = useState([]);
@@ -62,12 +63,7 @@ const SideNav = ({ onlineUsers }) => {
 
   useEffect(() => {
     socket.on("last_message_sent", async () => {
-      const { data: chatsData } = await axios.get(`${url}/chats/private`, {
-        headers: {
-          Authorization: `Bearer ${jToken}`,
-        },
-      });
-      const currentUserChatsData = chatsData.filter((user) =>
+      const currentUserChatsData = chats.filter((user) =>
         user.customId.includes(username)
       );
       setCurrentUserChats(currentUserChatsData);
@@ -89,24 +85,16 @@ const SideNav = ({ onlineUsers }) => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: usersData } = await axios.get(`${url}/users`);
-      setUsers(usersData);
+      if (!currentUser) return;
 
-      const currenUser = usersData.find((user) => user.username === username);
-
-      if (currenUser.blockedUsers.length > 0) {
-        setBlockedUsers(currenUser.blockedUsers);
+      if (currentUser.blockedUsers.length > 0) {
+        setBlockedUsers(currentUser.blockedUsers);
       }
-      if (currenUser.blockedBy.length > 0) {
-        setBlockedBy(currenUser.blockedBy);
+      if (currentUser.blockedBy.length > 0) {
+        setBlockedBy(currentUser.blockedBy);
       }
 
-      const { data: chatsData } = await axios.get(`${url}/chats/private`, {
-        headers: {
-          Authorization: `Bearer ${jToken}`,
-        },
-      });
-      const currentUserChatsData = chatsData.filter((user) =>
+      const currentUserChatsData = chats.filter((user) =>
         user.customId.includes(username)
       );
       setCurrentUserChats(currentUserChatsData);
@@ -120,7 +108,7 @@ const SideNav = ({ onlineUsers }) => {
       setCurrentGroupChats(CurrentUserGroupChatsData);
     };
     fetchData();
-  }, []);
+  }, [chats, currentUser, jToken, username]);
 
   useEffect(() => {
     const currentChats = [...currentGroupChats, ...currentUserChats];
@@ -197,7 +185,7 @@ const SideNav = ({ onlineUsers }) => {
       startGroupChat(groupName, updatedGroupChatsData);
     }, 1);
 
-    setChats(true);
+    setChatsView(true);
     setEditGroup(false);
     setGroupMembers([]);
   };
@@ -219,7 +207,7 @@ const SideNav = ({ onlineUsers }) => {
           },
         }}
       >
-        {chats && (
+        {chatsView && (
           <>
             <Box
               mb={1}
@@ -230,13 +218,13 @@ const SideNav = ({ onlineUsers }) => {
             >
               <Box ml={1}>
                 <Typography sx={{ fontSize: 20 }} variant="body1">
-                  Chats
+                  chats
                 </Typography>
               </Box>
               <IconButton
                 onClick={() => {
                   setNewChat(true);
-                  setChats(false);
+                  setChatsView(false);
                   setSearchText("");
                 }}
               >
@@ -385,7 +373,7 @@ const SideNav = ({ onlineUsers }) => {
                 borderRadius={3}
                 sx={{ cursor: "pointer", "&:hover": { bgcolor: "#333" } }}
                 onClick={() => {
-                  setChats(false);
+                  setChatsView(false);
                   setBlockedUsersList(true);
                 }}
               >
@@ -422,7 +410,7 @@ const SideNav = ({ onlineUsers }) => {
               <IconButton
                 onClick={() => {
                   setNewChat(false);
-                  setChats(true);
+                  setChatsView(true);
                   setSearchText("");
                 }}
               >
@@ -498,7 +486,7 @@ const SideNav = ({ onlineUsers }) => {
                       sx={{ cursor: "pointer", "&:hover": { bgcolor: "#404C53" } }}
                       onClick={() => {
                         startChat(user.username);
-                        setChats(true);
+                        setChatsView(true);
                       }}
                       borderRadius={2}
                       key={user._id}
@@ -845,7 +833,7 @@ const SideNav = ({ onlineUsers }) => {
                 <IconButton
                   onClick={() => {
                     setBlockedUsersList(false);
-                    setChats(true);
+                    setChatsView(true);
                   }}
                   sx={{ pl: 0.5, pr: 0 }}
                 >

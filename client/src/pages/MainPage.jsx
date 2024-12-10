@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { useEffect } from "react";
 import SideNav from "../components/SideNav";
 import { socket } from "../socket";
@@ -7,13 +8,12 @@ import WelcomePage from "./WelcomePage";
 
 const url = import.meta.env.VITE_API;
 
-const MainPage = ({ onlineUsers }) => {
+const MainPage = ({ onlineUsers, users }) => {
   const username = sessionStorage.getItem("username");
   const jToken = sessionStorage.getItem("accessToken");
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: users } = await axios.get(`${url}/users`);
       const user = users.find((user) => user.username === username);
       socket.emit("enter_chat", { username, userId: user._id });
 
@@ -32,7 +32,6 @@ const MainPage = ({ onlineUsers }) => {
   return (
     <>
       <WelcomePage />
-      <SideNav onlineUsers={onlineUsers} />
     </>
   );
 };

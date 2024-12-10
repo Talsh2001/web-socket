@@ -1,6 +1,6 @@
+/* eslint-disable react/prop-types */
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import SideNav from "./SideNav";
 import axios from "axios";
 import { socket } from "../socket";
 
@@ -19,15 +19,13 @@ import useSocketHandlers from "./BlockingEvents";
 
 const url = import.meta.env.VITE_API;
 
-const Profile = ({ onlineUsers }) => {
+const Profile = ({ currentUser, users, chats }) => {
   const [groupChats, setGroupChats] = useState([]);
   const [privateChats, setPrivateChats] = useState([]);
   const [receiverUsername, setReceiverUsername] = useState("");
-  const [users, setUsers] = useState([]);
   const [isAddNewMembers, setIsAddNewMembers] = useState(false);
   const [checkedStates, setCheckedStates] = useState({});
   const [blockedUsers, setBlockedUsers] = useState([]);
-  const [blockedBy, setBlockedBy] = useState([]);
 
   const username = sessionStorage.getItem("username");
   const jToken = sessionStorage.getItem("accessToken");
@@ -42,41 +40,31 @@ const Profile = ({ onlineUsers }) => {
         headers: { Authorization: `Bearer ${jToken}` },
       });
       setGroupChats(groupChatsData);
-      const { data: privateChatsData } = await axios.get(`${url}/chats/private`, {
-        headers: { Authorization: `Bearer ${jToken}` },
-      });
-      setPrivateChats(privateChatsData);
-      const { data: usersData } = await axios.get(`${url}/users`);
-      setUsers(usersData);
-      setReceiverUsername(usersData.find((user) => user._id === id)?.username);
-      const senderId = usersData.find((u) => u.username === username)._id;
+
+      setReceiverUsername(users.find((user) => user._id === id)?.username);
+      const senderId = users.find((u) => u.username === username)._id;
       socket.emit("enter_chat", { username, userId: senderId });
     };
     fetchData();
-  }, [id]);
+  }, [id, jToken, username, users]);
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: usersData } = await axios.get(`${url}/users`);
+      if (!currentUser) return;
 
-      const currenUser = usersData.find((user) => user.username === username);
-
-      if (currenUser.blockedUsers.length > 0) {
-        setBlockedUsers(currenUser.blockedUsers);
-      }
-      if (currenUser.blockedBy.length > 0) {
-        setBlockedBy(currenUser.blockedBy);
+      if (currentUser.blockedUsers.length > 0) {
+        setBlockedUsers(currentUser.blockedUsers);
       }
     };
     fetchData();
-  }, []);
+  }, [currentUser]);
 
-  useSocketHandlers(socket, setBlockedUsers, setBlockedBy);
+  useSocketHandlers(socket, setBlockedUsers);
 
   const deleteChat = async () => {
     const confirmDelete = window.confirm("Are you sure you want to delete this chat?");
     if (confirmDelete) {
-      const chatId = privateChats.find(
+      const chatId = chats.find(
         (chat) =>
           chat.customId.includes(username) && chat.customId.includes(receiverUsername)
       )?._id;
@@ -443,7 +431,7 @@ const Profile = ({ onlineUsers }) => {
                 />
               </Box>
             </Box>
-            {privateChats.find(
+            {chats.find(
               (chat) =>
                 chat.customId.includes(username) &&
                 chat.customId.includes(receiverUsername)
@@ -596,7 +584,6 @@ const Profile = ({ onlineUsers }) => {
           </Box>
         </Box>
       )}
-      <SideNav onlineUsers={onlineUsers} />
     </>
   );
 };
