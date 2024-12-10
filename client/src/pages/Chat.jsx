@@ -3,7 +3,6 @@ import React from "react";
 import { useEffect, useState, useRef } from "react";
 import { AppBar, Toolbar, Typography, Box, TextField, IconButton } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import axios from "axios";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { socket } from "../socket";
 import { Person, Send, GroupRounded, MoreVertRounded } from "@mui/icons-material";
@@ -11,12 +10,9 @@ import useSocketHandlers from "../components/BlockingEvents";
 
 const Offset = styled("div")(({ theme }) => theme.mixins.toolbar);
 
-const url = import.meta.env.VITE_API;
-
-const Chat = ({ users, chats }) => {
+const Chat = ({ users, chats, groupChats }) => {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
-  const [groupMessages, setGroupMessages] = useState([]);
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [blockedBy, setBlockedBy] = useState([]);
 
@@ -29,17 +25,14 @@ const Chat = ({ users, chats }) => {
   const senderUsername = sessionStorage.getItem("username");
   const jToken = sessionStorage.getItem("accessToken");
 
-  const groupName = groupMessages.find((group) => group._id == id)?.customId;
+  const groupName = groupChats.find((group) => group._id == id)?.customId;
 
   const bottomRef = useRef(null);
 
   const location = useLocation();
 
-  // console.log(users);
-  // console.log(chats);
-
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchUsers = () => {
       const currentUser = users.find((user) => user.username === senderUsername);
 
       if (currentUser && currentUser.blockedUsers.length > 0) {
@@ -49,14 +42,12 @@ const Chat = ({ users, chats }) => {
         setBlockedBy(currentUser.blockedBy);
       }
 
-      const senderId = currentUser ? currentUser._id : null;
+      // console.log({ username: senderUsername, userId: currentUser });
+      console.log(users);
 
-      socket.emit("enter_chat", { username: senderUsername, userId: senderId });
+      socket.emit("enter_chat", { username: senderUsername, userId: currentUser._id });
 
-      const { data: groupsData } = await axios.get(`${url}/chats/group`, {
-        headers: { Authorization: `Bearer ${jToken}` },
-      });
-      const currentGroupChats = groupsData
+      const currentGroupChats = groupChats
         .filter((group) => group.participants.includes(senderUsername))
         .map((group) => group.customId);
 
@@ -66,7 +57,7 @@ const Chat = ({ users, chats }) => {
       });
     };
     fetchUsers();
-  }, []);
+  }, [groupChats, senderUsername, users]);
 
   useEffect(() => {
     if (!is2PersonChat) return;
@@ -76,7 +67,7 @@ const Chat = ({ users, chats }) => {
         (chat) => chat.customId === [receiverUsername, senderUsername].sort().join("-")
       );
 
-      const currentGroupMessages = groupMessages.find((group) => group._id === id);
+      const currentGroupMessages = groupChats.find((group) => group._id === id);
 
       setMessages([]);
 
@@ -93,7 +84,7 @@ const Chat = ({ users, chats }) => {
     users,
     is2PersonChat,
     jToken,
-    groupMessages,
+    groupChats,
     senderUsername,
     id,
     chats,
@@ -118,9 +109,9 @@ const Chat = ({ users, chats }) => {
       return;
     }
 
-    if (groupMessages.find((group) => group._id === id)) {
+    if (groupChats.find((group) => group._id === id)) {
       if (message.trim()) {
-        const groupName = groupMessages.find((group) => group._id === id);
+        const groupName = groupChats.find((group) => group._id === id);
 
         const messageData = {
           content: message,
@@ -173,13 +164,6 @@ const Chat = ({ users, chats }) => {
   }, [senderUsername]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const { data: groupChatsData } = await axios.get(`${url}/chats/group`, {
-        headers: { Authorization: `Bearer ${jToken}` },
-      });
-      setGroupMessages(groupChatsData);
-    };
-    fetchData();
     setMessage("");
   }, [location.pathname]);
 

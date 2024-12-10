@@ -141,6 +141,18 @@ io.on("connection", (socket) => {
     }
     io.emit("last_message_sent", { from });
 
+    const groupChatsData = await GroupChat.find({});
+
+    io.emit("send_group_chats", groupChatsData);
+
+    groupMembers.forEach((memberUsername) => {
+      const user = Object.values(onlineUsers).find((u) => u.username === memberUsername);
+
+      if (user && user.socketId) {
+        io.to(user.socketId).emit("send_group_chats", groupChatsData);
+      }
+    });
+
     groupUsers[groupName] = new Set();
 
     groupMembers.forEach((username) => {

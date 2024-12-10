@@ -19,9 +19,7 @@ import useSocketHandlers from "./BlockingEvents";
 
 const url = import.meta.env.VITE_API;
 
-const Profile = ({ currentUser, users, chats }) => {
-  const [groupChats, setGroupChats] = useState([]);
-  const [privateChats, setPrivateChats] = useState([]);
+const Profile = ({ currentUser, users, chats, groupChats }) => {
   const [receiverUsername, setReceiverUsername] = useState("");
   const [isAddNewMembers, setIsAddNewMembers] = useState(false);
   const [checkedStates, setCheckedStates] = useState({});
@@ -36,11 +34,6 @@ const Profile = ({ currentUser, users, chats }) => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: groupChatsData } = await axios.get(`${url}/chats/group`, {
-        headers: { Authorization: `Bearer ${jToken}` },
-      });
-      setGroupChats(groupChatsData);
-
       setReceiverUsername(users.find((user) => user._id === id)?.username);
       const senderId = users.find((u) => u.username === username)._id;
       socket.emit("enter_chat", { username, userId: senderId });

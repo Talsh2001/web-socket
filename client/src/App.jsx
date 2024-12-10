@@ -13,12 +13,15 @@ const App = () => {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [users, setUsers] = useState([]);
   const [chats, setChats] = useState([]);
+  const [groupChats, setGroupChats] = useState([]);
 
   const username = sessionStorage.getItem("username");
   const jToken = sessionStorage.getItem("accessToken");
   const currentUser = users.find((user) => user.username === username);
 
   const location = useLocation();
+
+  console.log(users);
 
   useEffect(() => {
     socket.on("online_users", (onlineUsers) => {
@@ -33,6 +36,8 @@ const App = () => {
   useEffect(() => {
     const fetchData = async () => {
       const { data: usersData } = await axios.get(`${url}/users`);
+      console.log(usersData);
+
       setUsers(usersData);
     };
     fetchData();
@@ -45,6 +50,10 @@ const App = () => {
           headers: { Authorization: `Bearer ${jToken}` },
         });
         setChats(chatsData);
+        const { data: groupChatsData } = await axios.get(`${url}/chats/group`, {
+          headers: { Authorization: `Bearer ${jToken}` },
+        });
+        setGroupChats(groupChatsData);
       }
     };
     fetchData();
@@ -56,11 +65,20 @@ const App = () => {
         <Route path="/" element={<Login />} />
         <Route
           path="/main"
-          element={<MainPage onlineUsers={onlineUsers} users={users} />}
+          element={
+            <MainPage onlineUsers={onlineUsers} users={users} groupChats={groupChats} />
+          }
         />
         <Route
           path="/chat/:id"
-          element={<Chat onlineUsers={onlineUsers} users={users} chats={chats} />}
+          element={
+            <Chat
+              onlineUsers={onlineUsers}
+              users={users}
+              chats={chats}
+              groupChats={groupChats}
+            />
+          }
         />
         <Route
           path="/profile/:id"
@@ -70,6 +88,7 @@ const App = () => {
               currentUser={currentUser}
               users={users}
               chats={chats}
+              groupChats={groupChats}
             />
           }
         />
@@ -80,6 +99,7 @@ const App = () => {
           users={users}
           currentUser={currentUser}
           chats={chats}
+          groupChats={groupChats}
         />
       )}
     </>

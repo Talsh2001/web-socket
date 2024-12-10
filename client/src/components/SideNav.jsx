@@ -15,17 +15,16 @@ import {
 } from "@mui/icons-material";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { socket } from "../socket";
-import axios from "axios";
 import useSocketHandlers from "./BlockingEvents";
 
-const url = import.meta.env.VITE_API;
-
-const SideNav = ({ onlineUsers, users, currentUser, chats }) => {
+const SideNav = ({ onlineUsers, users, currentUser, chats, groupChats }) => {
   const [chatsView, setChatsView] = useState(true);
   const [newChat, setNewChat] = useState(false);
   const [newGroup, setNewGroup] = useState(false);
   const [editGroup, setEditGroup] = useState(false);
   const [blockedUsersList, setBlockedUsersList] = useState(false);
+
+  // console.log(onlineUsers);
 
   const [currentUserChats, setCurrentUserChats] = useState([]);
   const [searchText, setSearchText] = useState("");
@@ -62,29 +61,30 @@ const SideNav = ({ onlineUsers, users, currentUser, chats }) => {
   };
 
   useEffect(() => {
-    socket.on("last_message_sent", async () => {
+    socket.on("last_message_sent", () => {
       const currentUserChatsData = chats.filter((user) =>
         user.customId.includes(username)
       );
       setCurrentUserChats(currentUserChatsData);
 
-      const { data: groupChatsData } = await axios.get(`${url}/chats/group`, {
-        headers: { Authorization: `Bearer ${jToken}` },
-      });
-
-      const currentGroupChatsData = groupChatsData.filter((group) =>
+      const currentGroupChatsData = groupChats.filter((group) =>
         group.participants.includes(username)
       );
       setCurrentGroupChats(currentGroupChatsData);
     });
 
+    socket.on("send_group_chats", (groupChatsData) => {
+      setCurrentGroupChats(groupChatsData);
+    });
+
     return () => {
       socket.off("last_message_sent");
+      socket.off("send_group_chats");
     };
-  }, []);
+  }, [chats, groupChats, username]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchData = () => {
       if (!currentUser) return;
 
       if (currentUser.blockedUsers.length > 0) {
@@ -97,18 +97,16 @@ const SideNav = ({ onlineUsers, users, currentUser, chats }) => {
       const currentUserChatsData = chats.filter((user) =>
         user.customId.includes(username)
       );
+
       setCurrentUserChats(currentUserChatsData);
 
-      const { data: groupChatsData } = await axios.get(`${url}/chats/group`, {
-        headers: { Authorization: `Bearer ${jToken}` },
-      });
-      const CurrentUserGroupChatsData = groupChatsData.filter((group) =>
+      const CurrentUserGroupChatsData = groupChats.filter((group) =>
         group.participants.includes(username)
       );
       setCurrentGroupChats(CurrentUserGroupChatsData);
     };
     fetchData();
-  }, [chats, currentUser, jToken, username]);
+  }, [chats, currentUser, groupChats, jToken, username]);
 
   useEffect(() => {
     const currentChats = [...currentGroupChats, ...currentUserChats];
@@ -132,7 +130,7 @@ const SideNav = ({ onlineUsers, users, currentUser, chats }) => {
       setSortedChats(newSortedChats);
       setPreviousChats(currentChats);
     }
-  }, [currentUserChats, currentGroupChats]);
+  }, [currentUserChats, currentGroupChats, previousChats]);
 
   const startChat = (receiverUsername) => {
     const receiverId = users.find((user) => user.username === receiverUsername)._id;
@@ -149,22 +147,19 @@ const SideNav = ({ onlineUsers, users, currentUser, chats }) => {
     const groupId = updatedGroupChatsData.find(
       (group) => group.customId === groupName
     )?._id;
+
     setCurrentGroupChats(updatedGroupChatsData);
     navigate(`/chat/${groupId}`);
     setNewChat(false);
   };
 
-  const createGroup = async () => {
+  const createGroup = () => {
     if (!groupName) {
       alert("Group name is required");
       return;
     }
 
-    const { data: groupChatsData } = await axios.get(`${url}/chats/group`, {
-      headers: { Authorization: `Bearer ${jToken}` },
-    });
-
-    if (groupChatsData.map((ch) => ch.customId).includes(groupName)) {
+    if (groupChats.map((ch) => ch.customId).includes(groupName)) {
       alert("Group name is taken");
       return;
     }
@@ -177,13 +172,9 @@ const SideNav = ({ onlineUsers, users, currentUser, chats }) => {
       date: new Date(),
     });
 
-    setTimeout(async () => {
-      const { data: updatedGroupChatsData } = await axios.get(`${url}/chats/group`, {
-        headers: { Authorization: `Bearer ${jToken}` },
-      });
-
+    socket.once("send_group_chats", (updatedGroupChatsData) => {
       startGroupChat(groupName, updatedGroupChatsData);
-    }, 1);
+    });
 
     setChatsView(true);
     setEditGroup(false);
