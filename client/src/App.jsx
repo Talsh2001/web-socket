@@ -1,4 +1,3 @@
-// console.log(chats);
 import { Routes, Route, useLocation } from "react-router-dom";
 import Login from "./pages/Login";
 import MainPage from "./pages/MainPage";
@@ -61,7 +60,7 @@ const App = () => {
   // console.log(chats);
   const handleChatChange = () => {
     setChatUpdateTrigger((prev) => prev + 1);
-    console.log("chatUpdateTrigger updated:", chatUpdateTrigger);
+    // console.log("chatUpdateTrigger updated:", chatUpdateTrigger);
   };
 
   return (

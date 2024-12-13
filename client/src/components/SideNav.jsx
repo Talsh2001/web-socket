@@ -1,5 +1,4 @@
 /* eslint-disable react/prop-types */
-// console.log(chats);
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Drawer, IconButton, Box, Typography, TextField, Button } from "@mui/material";

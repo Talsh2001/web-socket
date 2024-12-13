@@ -1,5 +1,4 @@
 /* eslint-disable react/prop-types */
-// console.log(chats);
 import React from "react";
 import { useEffect, useState, useRef } from "react";
 import { AppBar, Toolbar, Typography, Box, TextField, IconButton } from "@mui/material";
