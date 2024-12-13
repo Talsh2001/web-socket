@@ -68,18 +68,36 @@ const Chat = ({ users, chats, groupChats }) => {
         (chat) => chat.customId === [receiverUsername, senderUsername].sort().join("-")
       );
 
-      const currentGroupMessages = groupChats.find((group) => group._id === id);
-
       setMessages([]);
 
       if (currentChat) {
         setMessages(currentChat.messages);
       }
+    };
+    fetch2PersonChats();
+  }, [
+    receiverUsername,
+    users,
+    is2PersonChat,
+    jToken,
+    groupChats,
+    senderUsername,
+    id,
+    chats,
+  ]);
+  useEffect(() => {
+    if (is2PersonChat) return;
+
+    const fetchGroupChats = async () => {
+      const currentGroupMessages = groupChats.find((group) => group._id === id);
+
+      setMessages([]);
+
       if (currentGroupMessages) {
         setMessages(currentGroupMessages.messages);
       }
     };
-    fetch2PersonChats();
+    fetchGroupChats();
   }, [
     receiverUsername,
     users,
