@@ -57,10 +57,8 @@ const App = () => {
     fetchData();
   }, [jToken, chatUpdateTrigger]);
 
-  // console.log(chats);
   const handleChatChange = () => {
     setChatUpdateTrigger((prev) => prev + 1);
-    // console.log("chatUpdateTrigger updated:", chatUpdateTrigger);
   };
 
   return (
