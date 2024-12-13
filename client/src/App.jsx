@@ -1,3 +1,4 @@
+// console.log(chats);
 import { Routes, Route, useLocation } from "react-router-dom";
 import Login from "./pages/Login";
 import MainPage from "./pages/MainPage";
