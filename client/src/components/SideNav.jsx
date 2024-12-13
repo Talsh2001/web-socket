@@ -17,7 +17,14 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 import { socket } from "../socket";
 import useSocketHandlers from "./BlockingEvents";
 
-const SideNav = ({ onlineUsers, users, currentUser, chats, groupChats }) => {
+const SideNav = ({
+  onlineUsers,
+  users,
+  currentUser,
+  chats,
+  groupChats,
+  onChatCreate,
+}) => {
   const [chatsView, setChatsView] = useState(true);
   const [newChat, setNewChat] = useState(false);
   const [newGroup, setNewGroup] = useState(false);
@@ -71,15 +78,26 @@ const SideNav = ({ onlineUsers, users, currentUser, chats, groupChats }) => {
         group.participants.includes(username)
       );
       setCurrentGroupChats(currentGroupChatsData);
+      onChatCreate();
     });
 
     socket.on("send_group_chats", (groupChatsData) => {
       setCurrentGroupChats(groupChatsData);
     });
 
+    socket.on("chat_deleted", ({ username: deletedBy, receiverUsername }) => {
+      if (username === deletedBy || username === receiverUsername) {
+        const currentUserChatsData = chats.filter((user) =>
+          user.customId.includes(username)
+        );
+        setCurrentUserChats(currentUserChatsData);
+      }
+    });
+
     return () => {
       socket.off("last_message_sent");
       socket.off("send_group_chats");
+      socket.off("chat_deleted");
     };
   }, [chats, groupChats, username]);
 
@@ -126,6 +144,8 @@ const SideNav = ({ onlineUsers, users, currentUser, chats, groupChats }) => {
 
         return dateB - dateA;
       });
+
+      // console.log(newSortedChats);
 
       setSortedChats(newSortedChats);
       setPreviousChats(currentChats);
@@ -249,6 +269,14 @@ const SideNav = ({ onlineUsers, users, currentUser, chats, groupChats }) => {
                   "&::-webkit-scrollbar": { display: "none" },
                 }}
               >
+                {/* {console.log(
+                  sortedChats.filter((c) =>
+                    c.customId
+                      .split("-")
+                      .find((name) => name !== username)
+                      .includes(searchText)
+                  )
+                )} */}
                 {sortedChats
                   .filter((c) =>
                     c.customId

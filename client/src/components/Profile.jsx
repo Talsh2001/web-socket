@@ -19,7 +19,7 @@ import useSocketHandlers from "./BlockingEvents";
 
 const url = import.meta.env.VITE_API;
 
-const Profile = ({ currentUser, users, chats, groupChats }) => {
+const Profile = ({ currentUser, users, chats, groupChats, onChatDelete }) => {
   const [receiverUsername, setReceiverUsername] = useState("");
   const [isAddNewMembers, setIsAddNewMembers] = useState(false);
   const [checkedStates, setCheckedStates] = useState({});
@@ -65,6 +65,9 @@ const Profile = ({ currentUser, users, chats, groupChats }) => {
         headers: { Authorization: `Bearer ${jToken}` },
       });
       console.log(data);
+      socket.emit("chat_deleted", { username, receiverUsername });
+      onChatDelete();
+
       navigate("/main");
     }
   };

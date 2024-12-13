@@ -264,6 +264,10 @@ io.on("connection", (socket) => {
       await groupChat.save();
       io.emit("last_message_sent", { groupName });
 
+      if (Array.isArray(groupChat.participants) && groupChat.participants.length === 0) {
+        await GroupChat.deleteOne({ customId: groupName });
+      }
+
       console.log(`${username} removed from the database group ${groupName}`);
     }
 
@@ -336,6 +340,17 @@ io.on("connection", (socket) => {
     }
 
     console.log(`${username} unblocked ${blockedUser}`);
+  });
+
+  socket.on("chat_deleted", ({ username, receiverUsername }) => {
+    const receiverSocketId = Object.values(onlineUsers).find(
+      (user) => user.username === receiverUsername
+    )?.socketId;
+
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("chat_deleted", { username, receiverUsername });
+    }
+    socket.emit("chat_deleted", { username, receiverUsername });
   });
 
   socket.on("disconnect", () => {

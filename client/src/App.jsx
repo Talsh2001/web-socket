@@ -14,6 +14,7 @@ const App = () => {
   const [users, setUsers] = useState([]);
   const [chats, setChats] = useState([]);
   const [groupChats, setGroupChats] = useState([]);
+  const [chatUpdateTrigger, setChatUpdateTrigger] = useState(0);
 
   const username = sessionStorage.getItem("username");
   const jToken = sessionStorage.getItem("accessToken");
@@ -54,7 +55,13 @@ const App = () => {
       }
     };
     fetchData();
-  }, [jToken]);
+  }, [jToken, chatUpdateTrigger]);
+
+  // console.log(chats);
+  const handleChatChange = () => {
+    setChatUpdateTrigger((prev) => prev + 1);
+    console.log("chatUpdateTrigger updated:", chatUpdateTrigger);
+  };
 
   return (
     <>
@@ -86,6 +93,7 @@ const App = () => {
               users={users}
               chats={chats}
               groupChats={groupChats}
+              onChatDelete={handleChatChange}
             />
           }
         />
@@ -97,6 +105,7 @@ const App = () => {
           currentUser={currentUser}
           chats={chats}
           groupChats={groupChats}
+          onChatCreate={handleChatChange}
         />
       )}
     </>

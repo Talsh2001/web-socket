@@ -27,8 +27,6 @@ const Chat = ({ users, chats, groupChats }) => {
 
   const groupName = groupChats.find((group) => group._id == id)?.customId;
 
-  // console.log(messages);
-
   const bottomRef = useRef(null);
 
   const location = useLocation();
