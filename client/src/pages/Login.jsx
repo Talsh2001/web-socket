@@ -20,7 +20,7 @@ const Login = () => {
     sessionStorage.setItem("username", data.username);
   };
 
-  const sign_in = async () => {
+  const sign_up = async () => {
     const { data } = await axios.post(url, userLogin);
     console.log(data);
   };
@@ -28,8 +28,8 @@ const Login = () => {
   return (
     <>
       <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
-        <Button onClick={sign_in} variant="contained">
-          Sign in
+        <Button onClick={sign_up} variant="contained">
+          Sign up
         </Button>
         <Box mx={2}>
           <TextField
