@@ -21,8 +21,6 @@ const App = () => {
 
   const location = useLocation();
 
-  console.log(users);
-
   useEffect(() => {
     socket.on("online_users", (onlineUsers) => {
       setOnlineUsers(onlineUsers);
@@ -36,7 +34,6 @@ const App = () => {
   useEffect(() => {
     const fetchData = async () => {
       const { data: usersData } = await axios.get(`${url}/users`);
-      console.log(usersData);
 
       setUsers(usersData);
     };

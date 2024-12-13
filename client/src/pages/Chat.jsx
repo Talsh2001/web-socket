@@ -27,7 +27,7 @@ const Chat = ({ users, chats, groupChats }) => {
 
   const groupName = groupChats.find((group) => group._id == id)?.customId;
 
-  console.log(messages);
+  // console.log(messages);
 
   const bottomRef = useRef(null);
 
@@ -44,7 +44,9 @@ const Chat = ({ users, chats, groupChats }) => {
         setBlockedBy(currentUser.blockedBy);
       }
 
-      socket.emit("enter_chat", { username: senderUsername, userId: currentUser?._id });
+      if (currentUser) {
+        socket.emit("enter_chat", { username: senderUsername, userId: currentUser?._id });
+      }
 
       const currentGroupChats = groupChats
         .filter((group) => group.participants.includes(senderUsername))
