@@ -2,7 +2,7 @@ import { Routes, Route, useLocation } from "react-router-dom";
 import Login from "./pages/Login";
 import MainPage from "./pages/MainPage";
 import Chat from "./pages/Chat";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { socket } from "./socket";
 import Profile from "./components/Profile";
 import axios from "axios";
@@ -14,7 +14,6 @@ const App = () => {
   const [users, setUsers] = useState([]);
   const [chats, setChats] = useState([]);
   const [groupChats, setGroupChats] = useState([]);
-  const [chatUpdateTrigger, setChatUpdateTrigger] = useState(0);
 
   const username = sessionStorage.getItem("username");
   const jToken = sessionStorage.getItem("accessToken");
@@ -41,8 +40,8 @@ const App = () => {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const getChats = useCallback(() => {
+    return async () => {
       if (jToken) {
         const { data: chatsData } = await axios.get(`${url}/chats/private`, {
           headers: { Authorization: `Bearer ${jToken}` },
@@ -54,11 +53,14 @@ const App = () => {
         setGroupChats(groupChatsData);
       }
     };
-    fetchData();
-  }, [jToken, chatUpdateTrigger]);
+  }, [jToken]);
+
+  useEffect(() => {
+    getChats();
+  }, [getChats]);
 
   const handleChatChange = () => {
-    setChatUpdateTrigger((prev) => prev + 1);
+    getChats();
   };
 
   return (
@@ -91,7 +93,7 @@ const App = () => {
               users={users}
               chats={chats}
               groupChats={groupChats}
-              onChatDelete={handleChatChange}
+              onChatDelete={getChats}
             />
           }
         />

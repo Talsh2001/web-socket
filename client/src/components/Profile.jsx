@@ -19,7 +19,14 @@ import useSocketHandlers from "./BlockingEvents";
 
 const url = import.meta.env.VITE_API;
 
-const Profile = ({ currentUser, users, chats, groupChats, onChatDelete }) => {
+const Profile = ({
+  currentUser,
+  users,
+  chats,
+  groupChats,
+  onChatDelete,
+  onlineUsers,
+}) => {
   const [receiverUsername, setReceiverUsername] = useState("");
   const [isAddNewMembers, setIsAddNewMembers] = useState(false);
   const [checkedStates, setCheckedStates] = useState({});
@@ -35,8 +42,11 @@ const Profile = ({ currentUser, users, chats, groupChats, onChatDelete }) => {
   useEffect(() => {
     const fetchData = async () => {
       setReceiverUsername(users.find((user) => user._id === id)?.username);
-      const senderId = users.find((u) => u.username === username)._id;
-      socket.emit("enter_chat", { username, userId: senderId });
+      const senderId = users.find((u) => u.username === username)?._id;
+
+      if (!onlineUsers.find((user) => user.username === username)) {
+        socket.emit("enter_chat", { username, userId: senderId });
+      }
     };
     fetchData();
   }, [id, jToken, username, users]);
