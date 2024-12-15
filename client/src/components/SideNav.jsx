@@ -84,15 +84,11 @@ const SideNav = ({
       setCurrentGroupChats(groupChatsData);
     });
 
-   
-
     return () => {
       socket.off("last_message_sent");
       socket.off("send_group_chats");
     };
   }, [chats, currentGroupChats, groupChats, onChatCreate, username]);
-
-  useEffect(() => {}, [chats]);
 
   useEffect(() => {
     const fetchData = () => {
@@ -127,7 +123,9 @@ const SideNav = ({
       return chat.messages.length !== prevMessages.length;
     });
 
-    if (hasNewMessage) {
+    const hasFewerChats = currentChats.length < previousChats.length;
+
+    if (hasNewMessage || hasFewerChats) {
       const newSortedChats = [...currentChats].sort((chatA, chatB) => {
         const latestMessageA = chatA.messages[chatA.messages.length - 1];
         const latestMessageB = chatB.messages[chatB.messages.length - 1];
@@ -140,21 +138,6 @@ const SideNav = ({
 
       setSortedChats(newSortedChats);
       setPreviousChats(currentChats);
-    }
-
-    const hasFewerChats = currentChats.length < previousChats.length;
-
-    if (hasFewerChats) {
-      const newSortedChats = [...currentChats].sort((chatA, chatB) => {
-        const latestMessageA = chatA.messages[chatA.messages.length - 1];
-        const latestMessageB = chatB.messages[chatB.messages.length - 1];
-
-        const dateA = new Date(latestMessageA.date);
-        const dateB = new Date(latestMessageB.date);
-
-        return dateB - dateA;
-      });
-      setSortedChats(newSortedChats);
     }
   }, [currentUserChats, currentGroupChats, previousChats, chats]);
 

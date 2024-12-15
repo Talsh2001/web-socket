@@ -20,7 +20,7 @@ const MainPage = ({ users, groupChats }) => {
       socket.emit("rejoin_groups", { username, groups: currentGroupChats });
     };
     fetchData();
-  }, []);
+  }, [groupChats, username, users]);
 
   return (
     <>
