@@ -342,17 +342,6 @@ io.on("connection", (socket) => {
     console.log(`${username} unblocked ${blockedUser}`);
   });
 
-  socket.on("chat_deleted", ({ username, receiverUsername }) => {
-    const receiverSocketId = Object.values(onlineUsers).find(
-      (user) => user.username === receiverUsername
-    )?.socketId;
-
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("chat_deleted", { username, receiverUsername });
-    }
-    socket.emit("chat_deleted", { username, receiverUsername });
-  });
-
   socket.on("disconnect", () => {
     setUserToOffline(socket.id);
   });

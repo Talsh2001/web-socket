@@ -22,6 +22,7 @@ const SideNav = ({
   users,
   currentUser,
   chats,
+  setChats,
   groupChats,
   onChatCreate,
 }) => {
@@ -30,8 +31,6 @@ const SideNav = ({
   const [newGroup, setNewGroup] = useState(false);
   const [editGroup, setEditGroup] = useState(false);
   const [blockedUsersList, setBlockedUsersList] = useState(false);
-
-  // console.log(onlineUsers);
 
   const [currentUserChats, setCurrentUserChats] = useState([]);
   const [searchText, setSearchText] = useState("");
@@ -85,21 +84,15 @@ const SideNav = ({
       setCurrentGroupChats(groupChatsData);
     });
 
-    socket.on("chat_deleted", ({ username: deletedBy, receiverUsername }) => {
-      if (username === deletedBy || username === receiverUsername) {
-        const currentUserChatsData = chats.filter((user) =>
-          user.customId.includes(username)
-        );
-        setCurrentUserChats(currentUserChatsData);
-      }
-    });
+   
 
     return () => {
       socket.off("last_message_sent");
       socket.off("send_group_chats");
-      socket.off("chat_deleted");
     };
-  }, [chats, groupChats, username]);
+  }, [chats, currentGroupChats, groupChats, onChatCreate, username]);
+
+  useEffect(() => {}, [chats]);
 
   useEffect(() => {
     const fetchData = () => {
@@ -145,12 +138,25 @@ const SideNav = ({
         return dateB - dateA;
       });
 
-      // console.log(newSortedChats);
-
       setSortedChats(newSortedChats);
       setPreviousChats(currentChats);
     }
-  }, [currentUserChats, currentGroupChats, previousChats]);
+
+    const hasFewerChats = currentChats.length < previousChats.length;
+
+    if (hasFewerChats) {
+      const newSortedChats = [...currentChats].sort((chatA, chatB) => {
+        const latestMessageA = chatA.messages[chatA.messages.length - 1];
+        const latestMessageB = chatB.messages[chatB.messages.length - 1];
+
+        const dateA = new Date(latestMessageA.date);
+        const dateB = new Date(latestMessageB.date);
+
+        return dateB - dateA;
+      });
+      setSortedChats(newSortedChats);
+    }
+  }, [currentUserChats, currentGroupChats, previousChats, chats]);
 
   const startChat = (receiverUsername) => {
     const receiverId = users.find((user) => user.username === receiverUsername)._id;
@@ -277,6 +283,7 @@ const SideNav = ({
                       .includes(searchText)
                   )
                 )} */}
+
                 {sortedChats
                   .filter((c) =>
                     c.customId

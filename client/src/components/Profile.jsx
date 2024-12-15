@@ -49,7 +49,7 @@ const Profile = ({
       }
     };
     fetchData();
-  }, [id, jToken, username, users]);
+  }, [id, jToken, onlineUsers, username, users]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -75,7 +75,6 @@ const Profile = ({
         headers: { Authorization: `Bearer ${jToken}` },
       });
       console.log(data);
-      socket.emit("chat_deleted", { username, receiverUsername });
       onChatDelete();
 
       navigate("/main");

@@ -7,6 +7,7 @@ import { socket } from "./socket";
 import Profile from "./components/Profile";
 import axios from "axios";
 import SideNav from "./components/SideNav";
+
 const url = import.meta.env.VITE_API;
 
 const App = () => {
@@ -14,53 +15,69 @@ const App = () => {
   const [users, setUsers] = useState([]);
   const [chats, setChats] = useState([]);
   const [groupChats, setGroupChats] = useState([]);
+  const [username] = useState(() => sessionStorage.getItem("username"));
+  const [jToken] = useState(() => sessionStorage.getItem("accessToken"));
 
-  const username = sessionStorage.getItem("username");
-  const jToken = sessionStorage.getItem("accessToken");
   const currentUser = users.find((user) => user.username === username);
 
   const location = useLocation();
 
   useEffect(() => {
-    socket.on("online_users", (onlineUsers) => {
-      setOnlineUsers(onlineUsers);
-    });
+    const handleOnlineUsers = (onlineUsers) => setOnlineUsers(onlineUsers);
+
+    socket.on("online_users", handleOnlineUsers);
 
     return () => {
-      socket.off("online_users");
+      socket.off("online_users", handleOnlineUsers);
     };
   }, []);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const { data: usersData } = await axios.get(`${url}/users`);
+    const fetchInitialData = async () => {
+      try {
+        const { data: usersData } = await axios.get(`${url}/users`);
+        setUsers(usersData);
 
-      setUsers(usersData);
-    };
-    fetchData();
-  }, []);
-
-  const getChats = useCallback(() => {
-    return async () => {
-      if (jToken) {
-        const { data: chatsData } = await axios.get(`${url}/chats/private`, {
-          headers: { Authorization: `Bearer ${jToken}` },
-        });
-        setChats(chatsData);
-        const { data: groupChatsData } = await axios.get(`${url}/chats/group`, {
-          headers: { Authorization: `Bearer ${jToken}` },
-        });
-        setGroupChats(groupChatsData);
+        if (jToken) {
+          const { data: chatsData } = await axios.get(`${url}/chats/private`, {
+            headers: { Authorization: `Bearer ${jToken}` },
+          });
+          setChats(chatsData);
+        }
+      } catch (error) {
+        console.error("Error fetching initial data:", error);
       }
     };
+
+    fetchInitialData();
+  }, [jToken]);
+
+  const fetchChats = useCallback(async () => {
+    if (!jToken) return;
+
+    try {
+      const [{ data: chatsData }, { data: groupChatsData }] = await Promise.all([
+        axios.get(`${url}/chats/private`, {
+          headers: { Authorization: `Bearer ${jToken}` },
+        }),
+        axios.get(`${url}/chats/group`, {
+          headers: { Authorization: `Bearer ${jToken}` },
+        }),
+      ]);
+
+      setChats(chatsData);
+      setGroupChats(groupChatsData);
+    } catch (error) {
+      console.error("Error fetching chats:", error);
+    }
   }, [jToken]);
 
   useEffect(() => {
-    getChats();
-  }, [getChats]);
+    fetchChats();
+  }, [fetchChats]);
 
   const handleChatChange = () => {
-    getChats();
+    fetchChats();
   };
 
   return (
@@ -93,7 +110,7 @@ const App = () => {
               users={users}
               chats={chats}
               groupChats={groupChats}
-              onChatDelete={getChats}
+              onChatDelete={fetchChats}
             />
           }
         />
@@ -104,6 +121,7 @@ const App = () => {
           users={users}
           currentUser={currentUser}
           chats={chats}
+          setChats={setChats}
           groupChats={groupChats}
           onChatCreate={handleChatChange}
         />
