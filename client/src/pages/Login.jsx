@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -7,7 +8,7 @@ const url = `${import.meta.env.VITE_API}/users`;
 import { Box, TextField, Button, InputAdornment, IconButton } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 
-const Login = () => {
+const Login = ({ setJToken }) => {
   const [userLogin, setUserLogin] = useState({});
   const [showPassword, setShowPassword] = useState(false);
 
@@ -16,6 +17,8 @@ const Login = () => {
   const login = async () => {
     const { data } = await axios.post(`${url}/login`, userLogin);
     sessionStorage.setItem("accessToken", data.accessToken);
+    setJToken(data.accessToken);
+    console.log(1);
     navigate("/main");
     sessionStorage.setItem("username", data.username);
   };

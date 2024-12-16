@@ -114,6 +114,13 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("delete_chat", ({ chatId, receiverUsername }) => {
+    const receiver = Object.values(onlineUsers).find(
+      (user) => user.username === receiverUsername
+    );
+    io.to(receiver.socketId).emit("chat_deleted", chatId);
+  });
+
   socket.on("join_group", async ({ groupName, groupMembers, token, from, date }) => {
     const validToken = await verifyToken(token);
 

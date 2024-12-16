@@ -16,7 +16,7 @@ const App = () => {
   const [chats, setChats] = useState([]);
   const [groupChats, setGroupChats] = useState([]);
   const [username] = useState(() => sessionStorage.getItem("username"));
-  const [jToken] = useState(() => sessionStorage.getItem("accessToken"));
+  const [jToken, setJToken] = useState(() => sessionStorage.getItem("accessToken"));
 
   const currentUser = users.find((user) => user.username === username);
 
@@ -83,7 +83,7 @@ const App = () => {
   return (
     <>
       <Routes>
-        <Route path="/" element={<Login />} />
+        <Route path="/" element={<Login setJToken={setJToken} />} />
         <Route
           path="/main"
           element={

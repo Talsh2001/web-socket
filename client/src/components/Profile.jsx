@@ -76,7 +76,7 @@ const Profile = ({
       });
       console.log(data);
       onChatDelete();
-
+      socket.emit("delete_chat", { chatId, receiverUsername });
       navigate("/main");
     }
   };

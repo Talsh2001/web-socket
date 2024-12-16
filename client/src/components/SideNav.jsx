@@ -22,7 +22,6 @@ const SideNav = ({
   users,
   currentUser,
   chats,
-  setChats,
   groupChats,
   onChatCreate,
 }) => {
@@ -83,12 +82,20 @@ const SideNav = ({
     socket.on("send_group_chats", (groupChatsData) => {
       setCurrentGroupChats(groupChatsData);
     });
+    socket.on("chat_deleted", () => {
+      onChatCreate();
+    });
 
     return () => {
       socket.off("last_message_sent");
       socket.off("send_group_chats");
+      socket.off("chat_deleted");
     };
   }, [chats, currentGroupChats, groupChats, onChatCreate, username]);
+
+  useEffect(() => {
+    setCurrentUserChats(chats);
+  }, [chats]);
 
   useEffect(() => {
     const fetchData = () => {
@@ -258,15 +265,6 @@ const SideNav = ({
                   "&::-webkit-scrollbar": { display: "none" },
                 }}
               >
-                {/* {console.log(
-                  sortedChats.filter((c) =>
-                    c.customId
-                      .split("-")
-                      .find((name) => name !== username)
-                      .includes(searchText)
-                  )
-                )} */}
-
                 {sortedChats
                   .filter((c) =>
                     c.customId
