@@ -18,7 +18,6 @@ const Login = ({ setJToken }) => {
     const { data } = await axios.post(`${url}/login`, userLogin);
     sessionStorage.setItem("accessToken", data.accessToken);
     setJToken(data.accessToken);
-    console.log(1);
     navigate("/main");
     sessionStorage.setItem("username", data.username);
   };
