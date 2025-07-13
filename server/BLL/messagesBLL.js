@@ -1,5 +1,5 @@
-const GroupChat = require("../models/groupModel");
-const PrivateChat = require("../models/privateModel");
+import GroupChat from "../models/groupModel.js";
+import PrivateChat from "../models/privateModel.js";
 
 const getAllGroupMessages = () => {
   return GroupChat.find();
@@ -19,7 +19,7 @@ const deleteGroupMessage = async (id) => {
   return "Group Chat Deleted!";
 };
 
-module.exports = {
+export {
   getAllGroupMessages,
   getAllPrivateMessages,
   deletePrivateMessage,

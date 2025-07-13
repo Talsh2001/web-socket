@@ -1,10 +1,10 @@
-const {
+import {
   getAllGroupMessages,
   getAllPrivateMessages,
   deletePrivateMessage,
   deleteGroupMessage,
-} = require("../BLL/messagesBLL");
-const express = require("express");
+} from "../BLL/messagesBLL.js";
+import express from "express";
 
 const router = express.Router();
 
@@ -46,4 +46,4 @@ router.delete("/group/:id", async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

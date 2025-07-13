@@ -1,5 +1,5 @@
-const jwt = require("jsonwebtoken");
-const { findUser } = require("../BLL/userBLL");
+import jwt from "jsonwebtoken";
+import { findUser } from "../BLL/userBLL.js";
 
 const JWT_SECRET = "socket";
 
@@ -9,7 +9,6 @@ const getToken = (req) => {
     const token = tokenHeader.replace("Bearer ", "");
     return token;
   }
-  // token not found
   return false;
 };
 
@@ -34,13 +33,10 @@ const verifyToken = async (token) => {
   try {
     const decodedToken = await jwt.verify(token, JWT_SECRET);
     const user = await findUser({ username: decodedToken.username });
-    if (!user) {
-      return false;
-    }
-    return true;
+    return !!user;
   } catch (err) {
     return false;
   }
 };
 
-module.exports = { requireAuth, getToken, verifyToken };
+export { requireAuth, getToken, verifyToken };

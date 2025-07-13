@@ -1,14 +1,12 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const connectDB = () => {
   mongoose
-    .connect(
-      "mongodb+srv://tomq5555:Talsh7410@cluster0.c3lnb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-    )
+    .connect("mongodb://127.0.0.1:27017/websocket")
     .then(() => {
       console.log("Connected to DB");
     })
     .catch((error) => console.log(error));
 };
 
-module.exports = connectDB;
+export default connectDB;

@@ -1,4 +1,4 @@
-const User = require("../models/usersModel");
+import User from "../models/usersModel.js";
 
 const findUser = async (params) => {
   return await User.findOne(params);
@@ -14,7 +14,7 @@ const getAllUsers = () => {
 };
 
 const getUserById = (id) => {
-  return User.find(id);
+  return User.findById(id); // fixed: .find → .findById
 };
 
 const addUser = async (obj) => {
@@ -33,7 +33,7 @@ const deleteUser = async (id) => {
   return "User Deleted!";
 };
 
-module.exports = {
+export {
   findUser,
   findUser_id,
   getAllUsers,

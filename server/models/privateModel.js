@@ -1,4 +1,5 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
+
 const { Schema } = mongoose;
 
 const privateChatSchema = new Schema(
@@ -17,4 +18,4 @@ const privateChatSchema = new Schema(
 
 const PrivateChat = mongoose.model("privateChat", privateChatSchema, "privateChats");
 
-module.exports = PrivateChat;
+export default PrivateChat;

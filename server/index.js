@@ -1,45 +1,46 @@
-const express = require("express");
-const cors = require("cors");
-const connectDB = require("./configs/db");
-const path = require("path");
+import express from "express";
+import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
+import https from "https";
+import http from "http";
+import fs from "fs";
+import dotenv from "dotenv";
+import { Server } from "socket.io";
 
-const https = require("https");
-const http = require("http");
+import connectDB from "./configs/db.js";
+import PrivateChat from "./models/privateModel.js";
+import GroupChat from "./models/groupModel.js";
+import Users from "./models/usersModel.js";
+import { requireAuth, verifyToken } from "./middlewares/auth-middleware.js";
+import usersRouter from "./routers/usersRouter.js";
+import messagesRouter from "./routers/messagesRouter.js";
 
-const fs = require("fs");
+dotenv.config();
 
-require("dotenv").config();
-
-const { Server } = require("socket.io");
-const PrivateChat = require("./models/privateModel");
-const GroupChat = require("./models/groupModel");
-const Users = require("./models/usersModel");
-
-const { requireAuth, verifyToken } = require("./middlewares/auth-middleware");
-
-const usersRouter = require("./routers/usersRouter");
-const messagesRouter = require("./routers/messagesRouter");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const port = process.env.PORT || 80;
 
 connectDB();
-
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "../client/dist")));
 app.use("/users", usersRouter);
 app.use("/chats", requireAuth, messagesRouter);
 
-let server = http.createServer(app);
-
-if (process.env.ENVIRONMENT !== "development") {
+// HTTP or HTTPS setup
+let server;
+if (process.env.SSL_KEY_PATH && process.env.SSL_CERT_PATH) {
   const options = {
-    key: fs.readFileSync("/etc/letsencrypt/live/tal-shalev.me/privkey.pem"),
-    cert: fs.readFileSync("/etc/letsencrypt/live/tal-shalev.me/fullchain.pem"),
+    key: fs.readFileSync(process.env.SSL_KEY_PATH),
+    cert: fs.readFileSync(process.env.SSL_CERT_PATH),
   };
-
   server = https.createServer(options, app);
+} else {
+  server = http.createServer(app);
 }
 
 const io = new Server(server, {

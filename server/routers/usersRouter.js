@@ -1,6 +1,6 @@
-const express = require("express");
-const jwt = require("jsonwebtoken");
-const {
+import express from "express";
+import jwt from "jsonwebtoken";
+import {
   findUser,
   getAllUsers,
   findUser_id,
@@ -8,7 +8,7 @@ const {
   addUser,
   updateUser,
   deleteUser,
-} = require("../BLL/userBLL");
+} from "../BLL/userBLL.js";
 
 const router = express.Router();
 
@@ -22,6 +22,7 @@ router.get("/", async (req, res) => {
     res.status(500).send(err.message);
   }
 });
+
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -62,6 +63,7 @@ router.put("/:id", async (req, res) => {
     res.status(500).send(err.message);
   }
 });
+
 router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -86,4 +88,4 @@ router.post("/login", async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

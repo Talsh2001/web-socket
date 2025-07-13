@@ -1,4 +1,5 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
+
 const { Schema } = mongoose;
 
 const groupChatSchema = new Schema(
@@ -19,4 +20,4 @@ const groupChatSchema = new Schema(
 
 const GroupChat = mongoose.model("groupChat", groupChatSchema, "groupChats");
 
-module.exports = GroupChat;
+export default GroupChat;
