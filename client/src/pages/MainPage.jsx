@@ -11,10 +11,10 @@ const MainPage = ({ users, groupChats }) => {
     const fetchData = () => {
       const user = users.find((user) => user.username === username);
 
-      socket.emit("enter_chat", { username, userId: user?._id });
+      socket.emit("enter_chat", { username, userId: user?.id });
 
       const currentGroupChats = groupChats
-        .filter((group) => group.participants.includes(username))
+        .filter((group) => group.participants && group.participants.includes(username))
         .map((group) => group.customId);
 
       socket.emit("rejoin_groups", { username, groups: currentGroupChats });

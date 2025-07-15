@@ -67,13 +67,13 @@ const SideNav = ({
 
   useEffect(() => {
     socket.on("last_message_sent", () => {
-      const currentUserChatsData = chats.filter((user) =>
-        user.customId.includes(username)
+      const currentUserChatsData = chats.filter(
+        (user) => user.customId && user.customId.includes(username)
       );
       setCurrentUserChats(currentUserChatsData);
 
-      const currentGroupChatsData = groupChats.filter((group) =>
-        group.participants.includes(username)
+      const currentGroupChatsData = groupChats.filter(
+        (group) => group.participants && group.participants.includes(username)
       );
       setCurrentGroupChats(currentGroupChatsData);
       onChatCreate();
@@ -101,21 +101,21 @@ const SideNav = ({
     const fetchData = () => {
       if (!currentUser) return;
 
-      if (currentUser.blockedUsers.length > 0) {
-        setBlockedUsers(currentUser.blockedUsers);
+      if (currentUser.BlockedUsers && currentUser.BlockedUsers.length > 0) {
+        setBlockedUsers(currentUser.BlockedUsers.map((user) => user.username));
       }
-      if (currentUser.blockedBy.length > 0) {
-        setBlockedBy(currentUser.blockedBy);
+      if (currentUser.BlockedBy && currentUser.BlockedBy.length > 0) {
+        setBlockedBy(currentUser.BlockedBy.map((user) => user.username));
       }
 
-      const currentUserChatsData = chats.filter((user) =>
-        user.customId.includes(username)
+      const currentUserChatsData = chats.filter(
+        (user) => user.customId && user.customId.includes(username)
       );
 
       setCurrentUserChats(currentUserChatsData);
 
-      const CurrentUserGroupChatsData = groupChats.filter((group) =>
-        group.participants.includes(username)
+      const CurrentUserGroupChatsData = groupChats.filter(
+        (group) => group.participants && group.participants.includes(username)
       );
       setCurrentGroupChats(CurrentUserGroupChatsData);
     };
@@ -126,6 +126,7 @@ const SideNav = ({
     const currentChats = [...currentGroupChats, ...currentUserChats];
 
     const hasNewMessage = currentChats.some((chat, index) => {
+      if (!chat.messages || !Array.isArray(chat.messages)) return false;
       const prevMessages = previousChats[index]?.messages || [];
       return chat.messages.length !== prevMessages.length;
     });
@@ -133,15 +134,20 @@ const SideNav = ({
     const hasFewerChats = currentChats.length < previousChats.length;
 
     if (hasNewMessage || hasFewerChats) {
-      const newSortedChats = [...currentChats].sort((chatA, chatB) => {
-        const latestMessageA = chatA.messages[chatA.messages.length - 1];
-        const latestMessageB = chatB.messages[chatB.messages.length - 1];
+      const newSortedChats = [...currentChats]
+        .filter(
+          (chat) =>
+            chat.messages && Array.isArray(chat.messages) && chat.messages.length > 0
+        )
+        .sort((chatA, chatB) => {
+          const latestMessageA = chatA.messages[chatA.messages.length - 1];
+          const latestMessageB = chatB.messages[chatB.messages.length - 1];
 
-        const dateA = new Date(latestMessageA.date);
-        const dateB = new Date(latestMessageB.date);
+          const dateA = new Date(latestMessageA.date);
+          const dateB = new Date(latestMessageB.date);
 
-        return dateB - dateA;
-      });
+          return dateB - dateA;
+        });
 
       setSortedChats(newSortedChats);
       setPreviousChats(currentChats);
@@ -149,21 +155,38 @@ const SideNav = ({
   }, [currentUserChats, currentGroupChats, previousChats, chats]);
 
   const startChat = (receiverUsername) => {
-    const receiverId = users.find((user) => user.username === receiverUsername)._id;
+    const receiverUser = users.find((user) => user.username === receiverUsername);
+    if (!receiverUser) {
+      console.error(`User with username ${receiverUsername} not found`);
+      alert(`User ${receiverUsername} not found. Please try again.`);
+      return;
+    }
+    const receiverId = receiverUser.id || receiverUser._id;
     navigate(`/chat/${receiverId}`);
     setNewChat(false);
   };
 
   const sendToGroupChat = (groupName) => {
-    const groupId = currentGroupChats.find((group) => group.customId === groupName)._id;
+    const group = currentGroupChats.find((group) => group.customId === groupName);
+    if (!group) {
+      console.error(`Group with name ${groupName} not found`);
+      alert(`Group ${groupName} not found. Please try again.`);
+      return;
+    }
+    const groupId = group._id;
     navigate(`/chat/${groupId}`);
   };
 
   const startGroupChat = (groupName, updatedGroupChatsData) => {
-    const groupId = updatedGroupChatsData.find(
-      (group) => group.customId === groupName
-    )?._id;
+    const group = updatedGroupChatsData.find((group) => group.customId === groupName);
 
+    if (!group) {
+      console.error(`Group with name ${groupName} not found in updated data`);
+      alert(`Group ${groupName} not found. Please try again.`);
+      return;
+    }
+
+    const groupId = group._id;
     setCurrentGroupChats(updatedGroupChatsData);
     navigate(`/chat/${groupId}`);
     setNewChat(false);
@@ -274,7 +297,7 @@ const SideNav = ({
                   )
                   .map((chat) => (
                     <Box
-                      key={chat._id}
+                      key={`${chat.participants ? "group" : "private"}-${chat._id}`}
                       borderRadius={2}
                       p={2}
                       m={1}
@@ -331,15 +354,25 @@ const SideNav = ({
                           <Circle
                             sx={{
                               fontSize: 10,
-                              fill: Object.values(onlineUsers).some(
-                                (u) =>
-                                  u.username ===
-                                  chat.customId
-                                    .split("-")
-                                    .find((name) => name !== username)
-                              )
-                                ? "green"
-                                : "red",
+                              fill: (() => {
+                                const otherUsername = chat.customId
+                                  .split("-")
+                                  .find((name) => name !== username);
+
+                                // Hide online status if either user has blocked the other
+                                if (
+                                  blockedUsers.includes(otherUsername) ||
+                                  blockedBy.includes(otherUsername)
+                                ) {
+                                  return "gray";
+                                }
+
+                                return Object.values(onlineUsers).some(
+                                  (u) => u.username === otherUsername
+                                )
+                                  ? "green"
+                                  : "red";
+                              })(),
                             }}
                           />
                         )}
@@ -496,7 +529,7 @@ const SideNav = ({
                         setChatsView(true);
                       }}
                       borderRadius={2}
-                      key={user._id}
+                      key={user._id || user.id}
                     >
                       <Box display="flex" alignItems="center">
                         <Person
@@ -523,11 +556,21 @@ const SideNav = ({
                       <Circle
                         sx={{
                           fontSize: 10,
-                          fill: Object.values(onlineUsers).some(
-                            (u) => u.username === user.username
-                          )
-                            ? "green"
-                            : "red",
+                          fill: (() => {
+                            // Hide online status if either user has blocked the other
+                            if (
+                              blockedUsers.includes(user.username) ||
+                              blockedBy.includes(user.username)
+                            ) {
+                              return "gray";
+                            }
+
+                            return Object.values(onlineUsers).some(
+                              (u) => u.username === user.username
+                            )
+                              ? "green"
+                              : "red";
+                          })(),
                         }}
                       />
                     </Box>
@@ -600,11 +643,11 @@ const SideNav = ({
               >
                 {groupMembers.length > 0 && (
                   <Box m={1}>
-                    {groupMembers.map((username, index) => (
+                    {groupMembers.map((username) => (
                       <Box
                         display="flex"
                         justifyContent="space-between"
-                        key={index}
+                        key={username}
                         mb={0.4}
                       >
                         <Box display="flex">
@@ -640,7 +683,7 @@ const SideNav = ({
                   .filter((u) => !groupMembers.includes(u.username))
                   .map((user) => (
                     <Box
-                      key={user._id}
+                      key={user.id || user._id || user.username}
                       borderRadius={2}
                       py={2}
                       px={1.5}
@@ -857,7 +900,7 @@ const SideNav = ({
                   "&::-webkit-scrollbar": { display: "none" },
                 }}
               >
-                {blockedUsers.map((Username, index) => (
+                {blockedUsers.map((Username) => (
                   <Box
                     display="flex"
                     alignItems="center"
@@ -880,7 +923,7 @@ const SideNav = ({
                       }
                     }}
                     borderRadius={2}
-                    key={index}
+                    key={Username}
                   >
                     <Box display="flex" alignItems="center">
                       <Person

@@ -1,12 +1,27 @@
-import mongoose from "mongoose";
+import { Sequelize } from "sequelize";
+import dotenv from "dotenv";
 
-const connectDB = () => {
-  mongoose
-    .connect("mongodb://127.0.0.1:27017/websocket")
-    .then(() => {
-      console.log("Connected to DB");
-    })
-    .catch((error) => console.log(error));
+dotenv.config({ path: "./.env" });
+
+const sequelize = new Sequelize(
+  process.env.MYSQL_DATABASE,
+  process.env.MYSQL_USER,
+  process.env.MYSQL_PASSWORD,
+  {
+    host: process.env.MYSQL_HOST,
+    dialect: "mysql",
+    logging: false, // Disable SQL query logging
+  }
+);
+
+const connectDB = async () => {
+  try {
+    await sequelize.authenticate();
+    console.log("Connection has been established successfully.");
+  } catch (error) {
+    console.error("Unable to connect to the database:", error);
+  }
 };
 
+export { sequelize };
 export default connectDB;

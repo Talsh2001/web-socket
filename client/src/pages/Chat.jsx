@@ -17,15 +17,22 @@ const Chat = ({ users, chats, groupChats }) => {
   const [blockedBy, setBlockedBy] = useState([]);
 
   const { id } = useParams();
-  const receiverUsername = users.find((user) => user._id === id)?.username;
-  const is2PersonChat = !!receiverUsername;
 
   const navigate = useNavigate();
 
   const senderUsername = sessionStorage.getItem("username");
   const jToken = sessionStorage.getItem("accessToken");
 
-  const groupName = groupChats.find((group) => group._id == id)?.customId;
+  // Check if this ID corresponds to a group chat first
+  const groupChat = groupChats.find((group) => group._id == id);
+  const groupName = groupChat?.customId;
+
+  // Look for a user if it's not a group chat
+  const receiverUser = !groupChat
+    ? users.find((user) => user._id === id || user.id === parseInt(id))
+    : null;
+  const receiverUsername = receiverUser?.username;
+  const is2PersonChat = !!receiverUsername && !groupChat;
 
   const bottomRef = useRef(null);
 
@@ -35,36 +42,50 @@ const Chat = ({ users, chats, groupChats }) => {
     const fetchUsers = () => {
       const currentUser = users.find((user) => user.username === senderUsername);
 
-      if (currentUser && currentUser.blockedUsers.length > 0) {
+      if (
+        currentUser &&
+        currentUser.blockedUsers &&
+        currentUser.blockedUsers.length > 0
+      ) {
         setBlockedUsers(currentUser.blockedUsers);
       }
-      if (currentUser && currentUser.blockedBy.length > 0) {
+      if (currentUser && currentUser.blockedBy && currentUser.blockedBy.length > 0) {
         setBlockedBy(currentUser.blockedBy);
       }
 
+      // Only emit enter_chat once when user is found and not already connected
       if (currentUser) {
-        socket.emit("enter_chat", { username: senderUsername, userId: currentUser?._id });
+        socket.emit("enter_chat", {
+          username: senderUsername,
+          userId: currentUser?._id || currentUser?.id,
+        });
       }
 
       const currentGroupChats = groupChats
         .filter((group) => group.participants.includes(senderUsername))
         .map((group) => group.customId);
 
-      socket.emit("rejoin_groups", {
-        username: senderUsername,
-        groups: currentGroupChats,
-      });
+      if (currentGroupChats.length > 0) {
+        socket.emit("rejoin_groups", {
+          username: senderUsername,
+          groups: currentGroupChats,
+        });
+      }
     };
-    fetchUsers();
+
+    // Only run when we have users data and username
+    if (users.length > 0 && senderUsername) {
+      fetchUsers();
+    }
   }, [groupChats, senderUsername, users]);
 
   useEffect(() => {
-    if (!is2PersonChat) return;
+    if (!is2PersonChat || !receiverUsername) return;
 
     const fetch2PersonChats = async () => {
-      const currentChat = chats.find(
-        (chat) => chat.customId === [receiverUsername, senderUsername].sort().join("-")
-      );
+      const expectedChatId = [receiverUsername, senderUsername].sort().join("-");
+
+      const currentChat = chats.find((chat) => chat.customId === expectedChatId);
 
       setMessages([]);
 
@@ -84,28 +105,17 @@ const Chat = ({ users, chats, groupChats }) => {
     chats,
   ]);
   useEffect(() => {
-    if (is2PersonChat) return;
+    // Check if we have groupChats data and if this ID corresponds to a group
+    const currentGroupMessages = groupChats.find((group) => group._id == id); // Use == for type coercion
 
-    const fetchGroupChats = async () => {
-      const currentGroupMessages = groupChats.find((group) => group._id === id);
-
-      setMessages([]);
-
-      if (currentGroupMessages) {
+    if (currentGroupMessages) {
+      if (currentGroupMessages.messages && currentGroupMessages.messages.length > 0) {
         setMessages(currentGroupMessages.messages);
+      } else {
+        setMessages([]);
       }
-    };
-    fetchGroupChats();
-  }, [
-    receiverUsername,
-    users,
-    is2PersonChat,
-    jToken,
-    groupChats,
-    senderUsername,
-    id,
-    chats,
-  ]);
+    }
+  }, [id, groupChats]); // Run when ID changes or when groupChats data loads
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -126,25 +136,29 @@ const Chat = ({ users, chats, groupChats }) => {
       return;
     }
 
-    if (groupChats.find((group) => group._id === id)) {
+    if (groupChat) {
       if (message.trim()) {
-        const groupName = groupChats.find((group) => group._id === id);
-
         const messageData = {
           content: message,
           from: senderUsername,
           token: jToken,
-          groupName: groupName.customId,
+          groupName: groupChat.customId,
           date: new Date(),
         };
 
         socket.emit("send_group_message", messageData);
 
-        setMessages((prevMessages) => [...prevMessages, messageData]);
+        // Add the message locally with the action property for proper display
+        const localMessageData = {
+          ...messageData,
+          action: "message",
+        };
+
+        setMessages((prevMessages) => [...prevMessages, localMessageData]);
 
         setMessage("");
       }
-    } else {
+    } else if (is2PersonChat) {
       if (message.trim()) {
         const messageData = {
           content: message,
@@ -165,20 +179,43 @@ const Chat = ({ users, chats, groupChats }) => {
   };
 
   useEffect(() => {
-    socket.on("receive_group_message", (messageData) => {
-      if (messageData.from !== senderUsername) {
-        setMessages((prevMessages) => [...prevMessages, messageData]);
+    const handleReceiveGroupMessage = (messageData) => {
+      // Only add message if it's for the current group chat
+      if (groupName && messageData.from !== senderUsername) {
+        const currentGroup = groupChats.find((group) => group._id === id);
+        if (currentGroup && currentGroup.customId === groupName) {
+          setMessages((prevMessages) => [...prevMessages, messageData]);
+        }
       }
-    });
-    socket.on("receive_message", (messageData) => {
-      setMessages((prevMessages) => [...prevMessages, messageData]);
-    });
+    };
+
+    const handleReceiveMessage = (messageData) => {
+      // Only add message if it's for the current private chat
+      if (is2PersonChat && receiverUsername) {
+        const expectedChatId = [receiverUsername, senderUsername].sort().join("-");
+        const currentChat = chats.find((chat) => chat.customId === expectedChatId);
+
+        // Check if the message belongs to the current chat
+        if (
+          currentChat &&
+          (messageData.from === receiverUsername || messageData.from === senderUsername)
+        ) {
+          // Add message from the receiver
+          if (messageData.from === receiverUsername) {
+            setMessages((prevMessages) => [...prevMessages, messageData]);
+          }
+        }
+      }
+    };
+
+    socket.on("receive_group_message", handleReceiveGroupMessage);
+    socket.on("receive_message", handleReceiveMessage);
 
     return () => {
-      socket.off("receive_group_message");
-      socket.off("receive_message");
+      socket.off("receive_group_message", handleReceiveGroupMessage);
+      socket.off("receive_message", handleReceiveMessage);
     };
-  }, [senderUsername]);
+  }, [senderUsername, receiverUsername, groupName, is2PersonChat, id, chats, groupChats]);
 
   useEffect(() => {
     setMessage("");
@@ -200,8 +237,7 @@ const Chat = ({ users, chats, groupChats }) => {
             alignItems="center"
             sx={{ width: { xs: "80%", sm: "89%", md: "95%" } }}
           >
-            {receiverUsername && <Person />}
-            {groupName && <GroupRounded />}
+            {receiverUsername ? <Person /> : <GroupRounded />}
             <Typography
               ml={2}
               sx={{
@@ -211,20 +247,12 @@ const Chat = ({ users, chats, groupChats }) => {
                 maxWidth: { xs: "100%", sm: "100%", md: "92%" },
               }}
             >
-              {receiverUsername && receiverUsername}
-              {groupName && groupName}
+              {is2PersonChat ? receiverUsername : groupName}
             </Typography>
           </Box>
-          {receiverUsername && (
-            <IconButton sx={{ p: 0 }} onClick={() => navigate(`/profile/${id}`)}>
-              <MoreVertRounded />
-            </IconButton>
-          )}
-          {groupName && (
-            <IconButton sx={{ p: 0 }} onClick={() => navigate(`/profile/${id}`)}>
-              <MoreVertRounded />
-            </IconButton>
-          )}
+          <IconButton sx={{ p: 0 }} onClick={() => navigate(`/profile/${id}`)}>
+            <MoreVertRounded />
+          </IconButton>
         </Toolbar>
       </AppBar>
       <Offset />
@@ -320,7 +348,7 @@ const Chat = ({ users, chats, groupChats }) => {
               );
             })}
 
-        {groupName && (
+        {groupChat && (
           <>
             {messages
               .sort((a, b) => {
@@ -441,6 +469,12 @@ const Chat = ({ users, chats, groupChats }) => {
         <TextField
           value={message}
           onChange={(e) => setMessage(e.target.value)}
+          onKeyPress={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              send();
+            }
+          }}
           sx={{ mr: 2, width: "60vw" }}
           placeholder="Message"
         />

@@ -8,10 +8,14 @@ import fs from "fs";
 import dotenv from "dotenv";
 import { Server } from "socket.io";
 
-import connectDB from "./configs/db.js";
-import PrivateChat from "./models/privateModel.js";
-import GroupChat from "./models/groupModel.js";
-import Users from "./models/usersModel.js";
+import connectDB, { sequelize } from "./configs/db.js";
+import PrivateChat from "./models/sequelize/PrivateChat.js";
+import GroupChat from "./models/sequelize/GroupChat.js";
+import User from "./models/sequelize/User.js";
+import PrivateMessage from "./models/sequelize/PrivateMessage.js";
+import GroupMessage from "./models/sequelize/GroupMessage.js";
+import BlockedUser from "./models/sequelize/BlockedUser.js";
+import GroupParticipant from "./models/sequelize/GroupParticipant.js";
 import { requireAuth, verifyToken } from "./middlewares/auth-middleware.js";
 import usersRouter from "./routers/usersRouter.js";
 import messagesRouter from "./routers/messagesRouter.js";
@@ -85,29 +89,76 @@ io.on("connection", (socket) => {
 
   socket.on("send_message", async (messageData) => {
     const { content, from, to, token, receiverId, date } = messageData;
+    console.log("Received send_message:", { content, from, to, receiverId });
+
     const validToken = await verifyToken(token);
 
     if (!validToken) {
+      console.log("Invalid token");
       return;
     }
 
-    let currentChat = await PrivateChat.findOne({
-      customId: [from, to].sort().join("-"),
-    });
+    const fromUser = await User.findOne({ where: { username: from } });
+    const toUser = await User.findOne({ where: { username: to } });
 
-    if (!currentChat) {
-      const customId = [from, to].sort().join("-");
-      currentChat = new PrivateChat({ customId, messages: [] });
+    if (!fromUser || !toUser) {
+      console.log("User not found:", { fromUser: !!fromUser, toUser: !!toUser });
+      return;
     }
 
-    currentChat.messages.push({ from, content, date });
-    await currentChat.save();
+    // Find existing chat between these two users
+    const existingChats = await PrivateChat.findAll({
+      include: [
+        {
+          model: User,
+          where: { id: [fromUser.id, toUser.id] },
+          through: { attributes: [] },
+        },
+      ],
+    });
+
+    // Find chat that has exactly these two users
+    let chat = null;
+    for (const existingChat of existingChats) {
+      const users = await existingChat.getUsers();
+      if (
+        users.length === 2 &&
+        users.some((u) => u.id === fromUser.id) &&
+        users.some((u) => u.id === toUser.id)
+      ) {
+        chat = existingChat;
+        break;
+      }
+    }
+
+    // If no chat exists, create one
+    if (!chat) {
+      chat = await PrivateChat.create();
+      await chat.addUsers([fromUser, toUser]);
+    }
+
+    await PrivateMessage.create({
+      content,
+      date,
+      fromId: fromUser.id,
+      privateChatId: chat.id,
+    });
 
     io.emit("last_message_sent", { content });
 
     const receiver = onlineUsers[receiverId];
     if (receiver) {
       io.to(receiver.socketId).emit("receive_message", {
+        content,
+        from,
+        date,
+      });
+    }
+
+    // Also emit back to sender for confirmation (in case they have multiple tabs open)
+    const sender = Object.values(onlineUsers).find((user) => user.username === from);
+    if (sender && sender.socketId !== socket.id) {
+      io.to(sender.socketId).emit("receive_message", {
         content,
         from,
         date,
@@ -129,27 +180,34 @@ io.on("connection", (socket) => {
       return;
     }
 
-    let currentGroupChat = await GroupChat.findOne({
-      customId: groupName,
+    const [group, created] = await GroupChat.findOrCreate({
+      where: { name: groupName },
     });
 
-    if (!currentGroupChat) {
-      currentGroupChat = new GroupChat({
-        customId: groupName,
-        participants: groupMembers,
-        messages: [],
-      });
-      currentGroupChat.messages.push({
-        from,
+    const users = await User.findAll({
+      where: {
+        username: groupMembers,
+      },
+    });
+
+    await group.addUsers(users);
+
+    if (created) {
+      const fromUser = await User.findOne({ where: { username: from } });
+      await GroupMessage.create({
         content: `${from} has created the group`,
         action: "group_creation",
         date,
+        fromId: fromUser.id,
+        GroupChatId: group.id,
       });
-      await currentGroupChat.save();
     }
+
     io.emit("last_message_sent", { from });
 
-    const groupChatsData = await GroupChat.find({});
+    const groupChatsData = await GroupChat.findAll({
+      include: [User, GroupMessage],
+    });
 
     io.emit("send_group_chats", groupChatsData);
 
@@ -192,12 +250,20 @@ io.on("connection", (socket) => {
       return;
     }
 
-    let currentChat = await GroupChat.findOne({
-      customId: groupName,
-    });
+    const group = await GroupChat.findOne({ where: { name: groupName } });
+    const fromUser = await User.findOne({ where: { username: from } });
 
-    currentChat.messages.push({ from, content, action: "message", date });
-    await currentChat.save();
+    if (!group || !fromUser) {
+      return;
+    }
+
+    await GroupMessage.create({
+      content,
+      action: "message",
+      date,
+      fromId: fromUser.id,
+      GroupChatId: group.id,
+    });
 
     io.emit("last_message_sent", { from });
 
@@ -215,21 +281,28 @@ io.on("connection", (socket) => {
       return;
     }
 
-    let currentChat = await GroupChat.findOne({
-      customId: groupName,
+    const group = await GroupChat.findOne({ where: { name: groupName } });
+    const userObjects = await User.findAll({
+      where: {
+        username: users,
+      },
     });
 
-    users.forEach((user) => {
-      currentChat.participants.push(user);
-      currentChat.messages.push({
-        from: user,
-        content: `${user} has joined the group`,
+    if (!group || userObjects.length === 0) {
+      return;
+    }
+
+    await group.addUsers(userObjects);
+
+    for (const user of userObjects) {
+      await GroupMessage.create({
+        content: `${user.username} has joined the group`,
         action: "join",
         date,
+        fromId: user.id,
+        GroupChatId: group.id,
       });
-    });
-
-    await currentChat.save();
+    }
 
     io.emit("last_message_sent", { groupName });
 
@@ -257,27 +330,30 @@ io.on("connection", (socket) => {
       console.log(`${username} removed from in-memory groupUsers list for ${groupName}`);
     }
 
-    const groupChat = await GroupChat.findOne({ customId: groupName });
+    const group = await GroupChat.findOne({ where: { name: groupName } });
+    const user = await User.findOne({ where: { username } });
 
-    if (groupChat) {
-      groupChat.participants = groupChat.participants.filter(
-        (participant) => participant !== username
-      );
-      groupChat.messages.push({
-        from: username,
+    if (group && user) {
+      await group.removeUser(user);
+      await GroupMessage.create({
         content: `${username} has left the group`,
         action: "leave",
         date,
+        fromId: user.id,
+        GroupChatId: group.id,
       });
-      await groupChat.save();
-      io.emit("last_message_sent", { groupName });
 
-      if (Array.isArray(groupChat.participants) && groupChat.participants.length === 0) {
-        await GroupChat.deleteOne({ customId: groupName });
+      const participants = await group.getUsers();
+      if (participants.length === 0) {
+        // Manually delete all group messages before destroying the group
+        await GroupMessage.destroy({
+          where: { GroupChatId: group.id },
+        });
+        await group.destroy();
       }
-
-      console.log(`${username} removed from the database group ${groupName}`);
     }
+
+    io.emit("last_message_sent", { groupName });
 
     socket.leave(groupName);
   });
@@ -289,25 +365,27 @@ io.on("connection", (socket) => {
       return;
     }
 
-    const userData = await Users.findOne({ username });
-    const blockedUserData = await Users.findOne({ username: blockedUser });
+    const user = await User.findOne({ where: { username } });
+    const userToBlock = await User.findOne({ where: { username: blockedUser } });
 
-    if (userData && blockedUserData) {
-      userData.blockedUsers.push(blockedUser);
-      blockedUserData.blockedBy.push(username);
-      await userData.save();
-      await blockedUserData.save();
+    if (user && userToBlock) {
+      await user.addBlockedUser(userToBlock);
     }
 
+    const blockedUsers = await user.getBlockedUsers();
+    const blockedUsersUsernames = blockedUsers.map((u) => u.username);
+
     socket.emit("user_blocked", {
-      blockedUsersList: userData.blockedUsers,
+      blockedUsersList: blockedUsersUsernames,
     });
 
     const receiver = onlineUsers[blockedUserId];
 
     if (receiver) {
+      const blockedBy = await userToBlock.getBlockedBy();
+      const blockedByUsernames = blockedBy.map((u) => u.username);
       io.to(receiver.socketId).emit("blocked_by", {
-        blockedByList: blockedUserData.blockedBy,
+        blockedByList: blockedByUsernames,
       });
     }
     console.log(`${username} blocked ${blockedUser}`);
@@ -320,30 +398,29 @@ io.on("connection", (socket) => {
       return;
     }
 
-    const userData = await Users.findOne({ username });
-    const blockedUserData = await Users.findOne({ username: blockedUser });
+    const user = await User.findOne({ where: { username } });
+    const userToUnblock = await User.findOne({
+      where: { username: blockedUser },
+    });
 
-    if (userData && blockedUserData) {
-      userData.blockedUsers = userData.blockedUsers.filter(
-        (userN) => userN !== blockedUser
-      );
-      blockedUserData.blockedBy = blockedUserData.blockedBy.filter(
-        (userN) => userN !== username
-      );
-
-      await userData.save();
-      await blockedUserData.save();
+    if (user && userToUnblock) {
+      await user.removeBlockedUser(userToUnblock);
     }
 
+    const blockedUsers = await user.getBlockedUsers();
+    const blockedUsersUsernames = blockedUsers.map((u) => u.username);
+
     socket.emit("user_unblocked", {
-      blockedUsersList: userData.blockedUsers,
+      blockedUsersList: blockedUsersUsernames,
     });
 
     const receiver = onlineUsers[blockedUserId];
 
     if (receiver) {
+      const blockedBy = await userToUnblock.getBlockedBy();
+      const blockedByUsernames = blockedBy.map((u) => u.username);
       io.to(receiver.socketId).emit("unblocked_by", {
-        blockedByList: blockedUserData.blockedBy,
+        blockedByList: blockedByUsernames,
       });
     }
 

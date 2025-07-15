@@ -41,8 +41,12 @@ const Profile = ({
 
   useEffect(() => {
     const fetchData = async () => {
-      setReceiverUsername(users.find((user) => user._id === id)?.username);
-      const senderId = users.find((u) => u.username === username)?._id;
+      setReceiverUsername(
+        users.find((user) => user._id === id || user.id === parseInt(id))?.username
+      );
+      const senderId =
+        users.find((u) => u.username === username)?._id ||
+        users.find((u) => u.username === username)?.id;
 
       if (!onlineUsers.find((user) => user.username === username)) {
         socket.emit("enter_chat", { username, userId: senderId });
@@ -55,7 +59,7 @@ const Profile = ({
     const fetchData = async () => {
       if (!currentUser) return;
 
-      if (currentUser.blockedUsers.length > 0) {
+      if (currentUser.blockedUsers && currentUser.blockedUsers.length > 0) {
         setBlockedUsers(currentUser.blockedUsers);
       }
     };
@@ -92,7 +96,9 @@ const Profile = ({
         username,
         blockedUser: receiverUsername,
         token: jToken,
-        blockedUserId: users.find((user) => user.username === receiverUsername)._id,
+        blockedUserId:
+          users.find((user) => user.username === receiverUsername)?._id ||
+          users.find((user) => user.username === receiverUsername)?.id,
       });
     }
   };
@@ -104,7 +110,9 @@ const Profile = ({
         username,
         blockedUser: receiverUsername,
         token: jToken,
-        blockedUserId: users.find((user) => user.username === receiverUsername)._id,
+        blockedUserId:
+          users.find((user) => user.username === receiverUsername)?._id ||
+          users.find((user) => user.username === receiverUsername)?.id,
       });
     }
   };
@@ -113,7 +121,7 @@ const Profile = ({
     const confirmLeave = window.confirm("Are you sure you want to leave this group?");
     if (confirmLeave) {
       socket.emit("leave_group", {
-        groupName: groupChats.find((group) => group._id === id)?.customId,
+        groupName: groupChats.find((group) => group._id == id)?.customId,
         username,
         token: jToken,
         date: new Date(),
@@ -131,7 +139,7 @@ const Profile = ({
 
   return (
     <>
-      {groupChats.find((chat) => chat._id === id) && (
+      {groupChats.find((chat) => chat._id == id) && (
         <>
           <Box mr={{ xs: "169.200px", sm: "219.200px", md: "279.200px" }}>
             <IconButton
@@ -163,7 +171,7 @@ const Profile = ({
             </Box>
             <Box mt={2.5} display="flex" justifyContent="center">
               <Typography variant="h4">
-                {groupChats.find((group) => group._id === id).customId}
+                {groupChats.find((group) => group._id == id).customId}
               </Typography>
             </Box>
             <Box mt={2.5} display="flex" justifyContent="center">
@@ -176,9 +184,9 @@ const Profile = ({
                 }}
               >
                 {`Group created by ${
-                  groupChats.find((group) => group._id === id).messages[0].from
+                  groupChats.find((group) => group._id == id).messages[0].from
                 } on ${new Date(
-                  groupChats.find((group) => group._id === id).messages[0].date
+                  groupChats.find((group) => group._id == id).messages[0].date
                 )
                   .toLocaleString("en-US", {
                     weekday: "long",
@@ -235,7 +243,7 @@ const Profile = ({
             >
               <Box display="flex" flexDirection="column" alignItems="flex-start">
                 {groupChats
-                  .find((group) => group._id === id)
+                  .find((group) => group._id == id)
                   .participants.sort((a, b) => {
                     if (a === username) return -1;
                     if (b === username) return 1;
@@ -266,9 +274,11 @@ const Profile = ({
                           if (isMyName) {
                             return;
                           }
-                          navigate(
-                            `/profile/${users.find((user) => user.username === par)._id}`
-                          );
+                          const user = users.find((user) => user.username === par);
+                          const userId = user?._id || user?.id;
+                          if (userId) {
+                            navigate(`/profile/${userId}`);
+                          }
                         }}
                       >
                         {par}
@@ -297,7 +307,7 @@ const Profile = ({
           </Box>
         </>
       )}
-      {!groupChats.find((chat) => chat._id === id) && (
+      {!groupChats.find((chat) => chat._id == id) && (
         <>
           <Box mr={{ xs: "169.200px", sm: "219.200px", md: "279.200px" }}>
             <IconButton
@@ -371,7 +381,14 @@ const Profile = ({
                           }}
                           display="flex"
                           flexDirection="column"
-                          onClick={() => navigate(`/chat/${group._id}`)}
+                          onClick={() => {
+                            if (!group._id) {
+                              console.error("Profile: Group ID is undefined");
+                              alert("Group not found. Please try again.");
+                              return;
+                            }
+                            navigate(`/chat/${group._id}`);
+                          }}
                         >
                           <strong>{group.customId}</strong>
                           <Box
@@ -521,10 +538,10 @@ const Profile = ({
                 .filter((user) => user.username !== username)
                 .sort((a, b) => {
                   const isAInGroup = groupChats
-                    .find((group) => group._id === id)
+                    .find((group) => group._id == id)
                     ?.participants.includes(a.username);
                   const isBInGroup = groupChats
-                    .find((group) => group._id === id)
+                    .find((group) => group._id == id)
                     ?.participants.includes(b.username);
 
                   if (isAInGroup && !isBInGroup) return -1;
@@ -533,7 +550,7 @@ const Profile = ({
                 })
                 .map((user) => {
                   const isUserInGroup = groupChats
-                    .find((group) => group._id === id)
+                    .find((group) => group._id == id)
                     ?.participants.includes(user.username);
                   return (
                     <Box key={user._id}>
@@ -565,7 +582,7 @@ const Profile = ({
 
                     socket.emit("add_users_to_group", {
                       users: selectedUsernames,
-                      groupName: groupChats.find((group) => group._id === id).customId,
+                      groupName: groupChats.find((group) => group._id == id).customId,
                       token: jToken,
                       date: new Date(),
                     });

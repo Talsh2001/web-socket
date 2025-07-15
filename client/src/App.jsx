@@ -32,26 +32,6 @@ const App = () => {
     };
   }, []);
 
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        const { data: usersData } = await axios.get(`${url}/users`);
-        setUsers(usersData);
-
-        if (jToken) {
-          const { data: chatsData } = await axios.get(`${url}/chats/private`, {
-            headers: { Authorization: `Bearer ${jToken}` },
-          });
-          setChats(chatsData);
-        }
-      } catch (error) {
-        console.error("Error fetching initial data:", error);
-      }
-    };
-
-    fetchInitialData();
-  }, [jToken]);
-
   const fetchChats = useCallback(async () => {
     if (!jToken) return;
 
@@ -73,8 +53,22 @@ const App = () => {
   }, [jToken]);
 
   useEffect(() => {
-    fetchChats();
-  }, [fetchChats]);
+    const fetchInitialData = async () => {
+      try {
+        const { data: usersData } = await axios.get(`${url}/users`);
+        setUsers(usersData);
+
+        // Only fetch chats if we have a token, and do it once
+        if (jToken) {
+          await fetchChats();
+        }
+      } catch (error) {
+        console.error("Error fetching initial data:", error);
+      }
+    };
+
+    fetchInitialData();
+  }, [jToken, fetchChats]);
 
   const handleChatChange = () => {
     fetchChats();

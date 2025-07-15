@@ -1,35 +1,45 @@
-import User from "../models/usersModel.js";
+import User from "../models/sequelize/User.js";
 
 const findUser = async (params) => {
-  return await User.findOne(params);
+  return await User.findOne({ where: params });
 };
 
 const findUser_id = async (username) => {
-  const user = await User.findOne({ username });
-  return user._id;
+  const user = await User.findOne({ where: { username } });
+  return user.id;
 };
 
 const getAllUsers = () => {
-  return User.find({});
+  return User.findAll({
+    include: [
+      {
+        association: "BlockedUsers",
+        attributes: ["username"],
+      },
+      {
+        association: "BlockedBy",
+        attributes: ["username"],
+      },
+    ],
+  });
 };
 
 const getUserById = (id) => {
-  return User.findById(id); // fixed: .find → .findById
+  return User.findByPk(id);
 };
 
 const addUser = async (obj) => {
-  const user = new User(obj);
-  await user.save();
+  await User.create(obj);
   return "User Created!";
 };
 
 const updateUser = async (id, obj) => {
-  await User.findByIdAndUpdate(id, obj);
+  await User.update(obj, { where: { id } });
   return "User Updated!";
 };
 
 const deleteUser = async (id) => {
-  await User.findByIdAndDelete(id);
+  await User.destroy({ where: { id } });
   return "User Deleted!";
 };
 
