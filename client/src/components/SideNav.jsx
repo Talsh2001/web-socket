@@ -340,6 +340,7 @@ const SideNav = ({
 
                           <Typography
                             ml={1}
+                            mr={1}
                             sx={{
                               overflow: "hidden",
                               textOverflow: "ellipsis",
