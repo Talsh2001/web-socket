@@ -29,8 +29,14 @@ const Login = ({ setJToken }) => {
 
   return (
     <>
-      <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
-        <Button onClick={sign_up} variant="contained">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        height="100vh"
+        mx={1}
+      >
+        <Button sx={{ whiteSpace: "nowrap" }} onClick={sign_up} variant="contained">
           Sign up
         </Button>
         <Box mx={2}>

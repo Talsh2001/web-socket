@@ -314,13 +314,14 @@ const Chat = ({ users, chats, groupChats }) => {
                   >
                     <Box
                       bgcolor={message.from === receiverUsername ? "#FFFFFF" : "#96ADFF"}
-                      maxWidth="65%"
+                      maxWidth={{ xs: "95%", sm: "65%" }}
                       sx={{ borderRadius: "8px", padding: "8px" }}
                     >
                       <Box
                         display="flex"
                         justifyContent="space-between"
                         alignItems="flex-end"
+                        flexDirection="column"
                       >
                         <Box
                           sx={{
@@ -332,7 +333,14 @@ const Chat = ({ users, chats, groupChats }) => {
                           {message.content}
                         </Box>
                         <Typography
-                          sx={{ ml: 1, whiteSpace: "nowrap" }}
+                          sx={{
+                            alignSelf:
+                              message.from === receiverUsername
+                                ? "flex-end"
+                                : "flex-start", // aligns to the sender's side
+                            whiteSpace: "nowrap",
+                            mt: 0.5,
+                          }}
                           variant="caption"
                         >
                           {`${new Date(message.date).getHours()}:${

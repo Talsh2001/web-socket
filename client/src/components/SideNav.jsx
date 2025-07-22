@@ -53,10 +53,10 @@ const SideNav = ({
   const isLg = useMediaQuery((theme) => theme.breakpoints.up("lg"));
 
   let drawerWidthVariant;
-  if (isXs) drawerWidthVariant = 170;
-  if (isSm) drawerWidthVariant = 220;
-  if (isMd) drawerWidthVariant = 280;
-  if (isLg) drawerWidthVariant = 280;
+  if (isXs) drawerWidthVariant = 150;
+  if (isSm) drawerWidthVariant = 190;
+  if (isMd) drawerWidthVariant = 220;
+  if (isLg) drawerWidthVariant = 220;
 
   const signout = () => {
     sessionStorage.setItem("accessToken", "");
@@ -265,7 +265,7 @@ const SideNav = ({
               <TextField
                 sx={{
                   bgcolor: "#D9D9D9",
-                  width: 130,
+                  width: { xs: 100, sm: 130 },
                   borderRadius: 1,
                   "& .MuiInputBase-input": { height: 4, padding: 1.5 },
                 }}
@@ -407,6 +407,7 @@ const SideNav = ({
               <Box
                 display="flex"
                 justifyContent="center"
+                alignItems="center"
                 p={0.5}
                 mt={1.3}
                 mx={0.5}
@@ -417,14 +418,14 @@ const SideNav = ({
                   setBlockedUsersList(true);
                 }}
               >
-                <Typography>Blocked Users</Typography>
+                <Typography fontSize={{ xs: 14, sm: 16 }}>Blocked Users</Typography>
                 <BlockRounded sx={{ ml: 1, fill: "red" }} />
               </Box>
 
               <Box display="flex" justifyContent="center" mt="auto">
                 <Button
                   onClick={signout}
-                  sx={{ bgcolor: "red", color: "#FFF", width: 140 }}
+                  sx={{ bgcolor: "red", color: "#FFF", width: { xs: 120, sm: 140 } }}
                 >
                   Sign out
                 </Button>
@@ -443,7 +444,7 @@ const SideNav = ({
               justifyContent="space-between"
             >
               <Box ml={1}>
-                <Typography sx={{ fontSize: 17 }} variant="body1">
+                <Typography sx={{ fontSize: { xs: 16, sm: 17 } }} variant="body1">
                   New Chat
                 </Typography>
               </Box>
@@ -461,7 +462,7 @@ const SideNav = ({
               <TextField
                 sx={{
                   bgcolor: "#D9D9D9",
-                  width: 130,
+                  width: { xs: 100, sm: 130 },
                   borderRadius: 1,
                   "& .MuiInputBase-input": { height: 4, padding: 1.5 },
                 }}
@@ -522,7 +523,7 @@ const SideNav = ({
                       alignItems="center"
                       justifyContent="space-between"
                       p={2}
-                      m={1}
+                      m={{ xs: 0, sm: 1 }}
                       sx={{ cursor: "pointer", "&:hover": { bgcolor: "#404C53" } }}
                       onClick={() => {
                         startChat(user.username);
