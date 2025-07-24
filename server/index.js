@@ -170,7 +170,9 @@ io.on("connection", (socket) => {
     const receiver = Object.values(onlineUsers).find(
       (user) => user.username === receiverUsername
     );
-    io.to(receiver.socketId).emit("chat_deleted", chatId);
+    if (receiver) {
+      io.to(receiver.socketId).emit("chat_deleted", chatId);
+    }
   });
 
   socket.on("join_group", async ({ groupName, groupMembers, token, from, date }) => {

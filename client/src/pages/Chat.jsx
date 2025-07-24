@@ -229,7 +229,7 @@ const Chat = ({ users, chats, groupChats }) => {
         <Toolbar
           sx={{
             justifyContent: "space-between",
-            mr: { xs: "169.200px", sm: "219.200px", md: "279.200px" },
+            mr: { xs: "149.200px", sm: "189.200px", md: "209.200px" },
           }}
         >
           <Box

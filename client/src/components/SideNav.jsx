@@ -548,7 +548,7 @@ const SideNav = ({
                             overflow: "hidden",
                             textOverflow: "ellipsis",
                             whiteSpace: "nowrap",
-                            maxWidth: { xs: "48.2px", sm: "100px", md: "160px" },
+                            maxWidth: { xs: "48.2px", sm: "70px", md: "100px" },
                           }}
                         >
                           {user.username}
