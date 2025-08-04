@@ -432,6 +432,19 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     setUserToOffline(socket.id);
   });
+
+  socket.on("new_user_connected", async ({ username }) => {
+    try {
+      const allUsers = await User.findAll({
+        attributes: ["id", "username"], // keep it lightweight
+      });
+
+      io.emit("update_user_list", allUsers);
+      console.log(`Broadcasted user list after ${username} connected.`);
+    } catch (err) {
+      console.error("Failed to fetch or emit updated user list:", err);
+    }
+  });
 });
 
 app.get("*", (req, res) => {

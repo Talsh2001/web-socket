@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { socket } from "../socket";
 
 const url = `${import.meta.env.VITE_API}/users`;
 
@@ -18,6 +19,10 @@ const Login = ({ setJToken }) => {
     const { data } = await axios.post(`${url}/login`, userLogin);
     sessionStorage.setItem("accessToken", data.accessToken);
     setJToken(data.accessToken);
+    socket.emit("new_user_connected", {
+      username: data.username,
+      id: data._id || data.id,
+    });
     navigate("/main");
     sessionStorage.setItem("username", data.username);
   };

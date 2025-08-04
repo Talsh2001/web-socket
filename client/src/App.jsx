@@ -70,6 +70,18 @@ const App = () => {
     fetchInitialData();
   }, [jToken, fetchChats]);
 
+  useEffect(() => {
+    const handleUpdateUsers = (updatedUsers) => {
+      setUsers(updatedUsers);
+    };
+
+    socket.on("update_user_list", handleUpdateUsers);
+
+    return () => {
+      socket.off("update_user_list", handleUpdateUsers);
+    };
+  }, []);
+
   const handleChatChange = () => {
     fetchChats();
   };
