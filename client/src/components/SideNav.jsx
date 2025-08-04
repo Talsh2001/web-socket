@@ -507,7 +507,6 @@ const SideNav = ({
                     <Typography ml={1.7}>New Group</Typography>
                   </Box>
                 </Box>
-                {console.log(users)}
                 {users
                   .filter((user) => user.username !== username)
                   .filter(
